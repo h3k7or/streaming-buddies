@@ -121,6 +121,22 @@ async function getFollowingIds(userId) {
   return (data || []).map(r => r.following_id);
 }
 
+export async function searchProfiles(query, currentUserId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .neq('id', currentUserId)
+    .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
+    .limit(20);
+  if (error) throw error;
+  const { data: following } = await supabase
+    .from('follows')
+    .select('following_id')
+    .eq('follower_id', currentUserId);
+  const followingSet = new Set((following || []).map(r => r.following_id));
+  return (data || []).map(p => ({ ...normalizeProfile(p), isFollowing: followingSet.has(p.id) }));
+}
+
 export async function getPeople(userId) {
   const { data, error } = await supabase.rpc('get_people', { current_user_id: userId });
   if (error) {
