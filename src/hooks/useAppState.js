@@ -137,6 +137,18 @@ function reducer(state, action) {
   }
 }
 
+async function ensureProfile(u) {
+  const meta = u.user_metadata || {};
+  const uname = meta.username || u.email.split('@')[0];
+  await supabase.from('profiles').upsert({
+    id: u.id,
+    username: uname,
+    display_name: uname,
+    avatar_letter: uname[0].toUpperCase(),
+    avatar_color: '#E84830',
+  }, { onConflict: 'id', ignoreDuplicates: true });
+}
+
 async function loadUserData(userId, dispatch) {
   try {
     const [feed, trending, myEntries, liked, notifications] = await Promise.all([
@@ -167,10 +179,11 @@ export function useAppState() {
 
   // Auth listener
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         const u = session.user;
         const meta = u.user_metadata || {};
+        await ensureProfile(u);
         dispatch({
           type: 'SET_USER',
           user: {
@@ -188,10 +201,11 @@ export function useAppState() {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         const u = session.user;
         const meta = u.user_metadata || {};
+        await ensureProfile(u);
         dispatch({
           type: 'SET_USER',
           user: {

@@ -101,7 +101,8 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
       dispatch({ type: 'SHOW_TOAST', msg: `"${entry.title}" logged!` });
       dispatch({ type: 'SHOW_SCREEN', screen: 'feed' });
       resetForm();
-    } catch {
+    } catch (err) {
+      console.error('submitLog failed:', err);
       dispatch({ type: 'SHOW_TOAST', msg: 'Failed to save — try again' });
     }
   }

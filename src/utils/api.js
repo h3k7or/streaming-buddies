@@ -56,7 +56,7 @@ export async function getFeed(userId) {
     .from('entries')
     .select(`
       *,
-      profiles ( username, display_name, avatar_letter, avatar_color ),
+      profiles!entries_user_id_fkey ( username, display_name, avatar_letter, avatar_color ),
       like_count:likes(count)
     `)
     .or(`user_id.eq.${userId},user_id.in.(${await getFollowingIds(userId)})`)
@@ -71,7 +71,7 @@ export async function getTrending() {
     .from('entries')
     .select(`
       *,
-      profiles ( username, display_name, avatar_letter, avatar_color ),
+      profiles!entries_user_id_fkey ( username, display_name, avatar_letter, avatar_color ),
       like_count:likes(count)
     `)
     .order('created_at', { ascending: false })
@@ -87,7 +87,7 @@ export async function getMyEntries(userId) {
     .from('entries')
     .select(`
       *,
-      profiles ( username, display_name, avatar_letter, avatar_color ),
+      profiles!entries_user_id_fkey ( username, display_name, avatar_letter, avatar_color ),
       like_count:likes(count)
     `)
     .eq('user_id', userId)
@@ -174,7 +174,7 @@ export async function insertEntry(entry, userId) {
       poster_path: entry.posterPath || null,
       tmdb_id: entry.tmdbId || null,
     })
-    .select(`*, profiles ( username, display_name, avatar_letter, avatar_color ), like_count:likes(count)`)
+    .select(`*, profiles!entries_user_id_fkey ( username, display_name, avatar_letter, avatar_color ), like_count:likes(count)`)
     .single();
   if (error) throw error;
   return normalizeEntry(data);
