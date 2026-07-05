@@ -4,14 +4,22 @@ import FilmStrip from '../components/ui/FilmStrip.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import Poster from '../components/ui/Poster.jsx';
 import { TYPE_LABELS, TYPE_COLORS, STATUS_COLORS, getStatusLabel, getStatusIcon } from '../utils/content.js';
+import { addLike, removeLike } from '../utils/api.js';
 
-export default function DetailScreen({ active, state, dispatch, actions, itemId, onBack, onToast }) {
-  const { feed, trending, liked } = state;
+export default function DetailScreen({ active, state, dispatch, itemId, onBack, onToast }) {
+  const { feed, trending, liked, user } = state;
   const item = itemId ? (feed.find(i => i.id === itemId) || trending.find(i => i.id === itemId)) : null;
 
-  function handleLike() {
+  async function handleLike() {
     if (!item) return;
-    actions.toggleLike(item.id);
+    const isLiked = liked.has(item.id);
+    dispatch({ type: 'TOGGLE_LIKE_LOCAL', id: item.id });
+    try {
+      if (isLiked) await removeLike(item.id, user.id);
+      else await addLike(item.id, user.id);
+    } catch {
+      dispatch({ type: 'TOGGLE_LIKE_LOCAL', id: item.id });
+    }
   }
 
   function handleShare() {

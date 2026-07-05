@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { TYPE_LABELS, STATUS_OPTIONS } from '../../utils/content.js';
 import { searchMovies, searchTV, POSTER_SM } from '../../utils/tmdb.js';
+import { insertEntry } from '../../utils/api.js';
 
-export default function LogModal({ open, prefill, modalType, modalStatus, modalRating, modalPosterPath, modalYear, user, dispatch, actions }) {
+export default function LogModal({ open, prefill, modalType, modalStatus, modalRating, modalPosterPath, modalYear, user, dispatch }) {
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [review, setReview] = useState('');
@@ -97,7 +98,8 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
       tmdbId: selectedItem?.tmdbId || null,
     };
     try {
-      await actions.submitLog(entry);
+      const saved = await insertEntry(entry, user.id);
+      dispatch({ type: 'PREPEND_ENTRY', entry: saved });
       dispatch({ type: 'SHOW_TOAST', msg: `"${entry.title}" logged!` });
       dispatch({ type: 'SHOW_SCREEN', screen: 'feed' });
       resetForm();

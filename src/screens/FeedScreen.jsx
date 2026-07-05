@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import FeedCard from '../components/cards/FeedCard.jsx';
 import Skeleton from '../components/ui/Skeleton.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
+import { addLike, removeLike } from '../utils/api.js';
 
 const FILTERS = [['all', 'All'], ['movie', 'Films'], ['tv', 'Series']];
 
-export default function FeedScreen({ active, state, dispatch, actions, onDetail, onOpenModal, onToast }) {
+export default function FeedScreen({ active, state, dispatch, onDetail, onOpenModal, onToast }) {
   const [loading, setLoading] = useState(false);
-  const { feed, feedFilter, liked } = state;
+  const { feed, feedFilter, liked, user } = state;
 
   useEffect(() => {
     if (active) {
@@ -16,6 +17,17 @@ export default function FeedScreen({ active, state, dispatch, actions, onDetail,
       return () => clearTimeout(t);
     }
   }, [active, feedFilter]);
+
+  async function handleLike(id) {
+    const isLiked = liked.has(id);
+    dispatch({ type: 'TOGGLE_LIKE_LOCAL', id });
+    try {
+      if (isLiked) await removeLike(id, user.id);
+      else await addLike(id, user.id);
+    } catch {
+      dispatch({ type: 'TOGGLE_LIKE_LOCAL', id }); // revert
+    }
+  }
 
   const items = feedFilter === 'all' ? feed : feed.filter(i => i.type === feedFilter);
 
@@ -49,7 +61,7 @@ export default function FeedScreen({ active, state, dispatch, actions, onDetail,
               key={item.id}
               item={item}
               liked={liked.has(item.id)}
-              onLike={id => actions.toggleLike(id)}
+              onLike={handleLike}
               onDetail={onDetail}
               onToast={onToast}
             />

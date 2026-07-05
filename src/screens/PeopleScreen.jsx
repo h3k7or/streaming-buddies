@@ -1,14 +1,21 @@
 import PersonCard from '../components/cards/PersonCard.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
+import { addFollow, removeFollow } from '../utils/api.js';
 
-export default function PeopleScreen({ active, state, dispatch, actions, onToast }) {
-  const { people, peopleTab } = state;
+export default function PeopleScreen({ active, state, dispatch, onToast }) {
+  const { people, peopleTab, user } = state;
   const shown = peopleTab === 'friends' ? people.filter(p => p.isFollowing) : people.filter(p => !p.isFollowing);
 
-  function handleFollow(id) {
+  async function handleFollow(id) {
     const p = people.find(p => p.id === id);
+    dispatch({ type: 'TOGGLE_FOLLOW_LOCAL', id });
     if (p) dispatch({ type: 'SHOW_TOAST', msg: p.isFollowing ? `Unfollowed ${p.displayName}` : `Following ${p.displayName}` });
-    actions.toggleFollow(id);
+    try {
+      if (p?.isFollowing) await removeFollow(id, user.id);
+      else await addFollow(id, user.id);
+    } catch {
+      dispatch({ type: 'TOGGLE_FOLLOW_LOCAL', id }); // revert
+    }
   }
 
   return (

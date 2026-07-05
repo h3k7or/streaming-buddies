@@ -1,7 +1,7 @@
 import Avatar from '../components/ui/Avatar.jsx';
 import { NOTIF_ICONS, NOTIF_COLORS } from '../utils/content.js';
 
-export default function NotificationsScreen({ active, state, dispatch, actions, onBack }) {
+export default function NotificationsScreen({ active, state, dispatch, onBack }) {
   const { notifications } = state;
   const unread = notifications.filter(n => !n.read).length;
 
@@ -23,7 +23,7 @@ export default function NotificationsScreen({ active, state, dispatch, actions, 
           NOTIFICATIONS{unread > 0 && <span className="notif-badge"> {unread}</span>}
         </span>
         {unread > 0
-          ? <button className="notif-mark-all" onClick={() => actions.markAllRead()}>ALL READ</button>
+          ? <button className="notif-mark-all" onClick={() => dispatch({ type: 'MARK_ALL_NOTIF_READ' })}>ALL READ</button>
           : <span style={{ width: 70 }} />
         }
       </div>
