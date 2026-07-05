@@ -52,16 +52,24 @@ function normalizeProfile(row) {
 }
 
 export async function getFeed(userId) {
-  const { data, error } = await supabase
+  const followingIds = await getFollowingIds(userId);
+  let query = supabase
     .from('entries')
     .select(`
       *,
       profiles!entries_user_id_fkey ( username, display_name, avatar_letter, avatar_color ),
       like_count:likes(count)
     `)
-    .or(`user_id.eq.${userId},user_id.in.(${await getFollowingIds(userId)})`)
     .order('created_at', { ascending: false })
     .limit(100);
+
+  if (followingIds.length > 0) {
+    query = query.or(`user_id.eq.${userId},user_id.in.(${followingIds.join(',')})`);
+  } else {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []).map(normalizeEntry);
 }
@@ -110,7 +118,7 @@ async function getFollowingIds(userId) {
     .from('follows')
     .select('following_id')
     .eq('follower_id', userId);
-  return (data || []).map(r => r.following_id).join(',') || 'null';
+  return (data || []).map(r => r.following_id);
 }
 
 export async function getPeople(userId) {
