@@ -115,6 +115,15 @@ function reducer(state, action) {
       };
     }
 
+    case 'REMOVE_ENTRY': {
+      return {
+        ...state,
+        feed: state.feed.filter(e => e.id !== action.id),
+        myEntries: state.myEntries.filter(e => e.id !== action.id),
+        currentScreen: state.prevScreen || 'feed',
+      };
+    }
+
     case 'SHOW_TOAST':
       return { ...state, toast: action.msg };
 

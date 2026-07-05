@@ -166,6 +166,25 @@ export async function getNotifications(userId) {
   });
 }
 
+export async function checkDuplicate(title, userId) {
+  const { data } = await supabase
+    .from('entries')
+    .select('id')
+    .eq('user_id', userId)
+    .ilike('title', title.trim())
+    .limit(1);
+  return (data || []).length > 0;
+}
+
+export async function deleteEntry(entryId, userId) {
+  const { error } = await supabase
+    .from('entries')
+    .delete()
+    .eq('id', entryId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
 export async function insertEntry(entry, userId) {
   const { data, error } = await supabase
     .from('entries')

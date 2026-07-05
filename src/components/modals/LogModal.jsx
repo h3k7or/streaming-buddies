@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { TYPE_LABELS, STATUS_OPTIONS } from '../../utils/content.js';
 import { searchMovies, searchTV, POSTER_SM } from '../../utils/tmdb.js';
-import { insertEntry } from '../../utils/api.js';
+import { insertEntry, checkDuplicate } from '../../utils/api.js';
 
 export default function LogModal({ open, prefill, modalType, modalStatus, modalRating, modalPosterPath, modalYear, user, dispatch }) {
   const [title, setTitle] = useState('');
@@ -85,6 +85,11 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
 
   async function handleSubmit() {
     if (!title.trim()) return;
+    const isDuplicate = await checkDuplicate(title, user.id);
+    if (isDuplicate) {
+      dispatch({ type: 'SHOW_TOAST', msg: `"${title.trim()}" is already in your log` });
+      return;
+    }
     const entry = {
       type: modalType,
       title: title.trim(),

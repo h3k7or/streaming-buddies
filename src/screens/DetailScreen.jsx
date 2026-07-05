@@ -4,7 +4,7 @@ import FilmStrip from '../components/ui/FilmStrip.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import Poster from '../components/ui/Poster.jsx';
 import { TYPE_LABELS, TYPE_COLORS, STATUS_COLORS, getStatusLabel, getStatusIcon } from '../utils/content.js';
-import { addLike, removeLike } from '../utils/api.js';
+import { addLike, removeLike, deleteEntry } from '../utils/api.js';
 
 export default function DetailScreen({ active, state, dispatch, itemId, onBack, onToast }) {
   const { feed, trending, liked, user } = state;
@@ -19,6 +19,17 @@ export default function DetailScreen({ active, state, dispatch, itemId, onBack, 
       else await addLike(item.id, user.id);
     } catch {
       dispatch({ type: 'TOGGLE_LIKE_LOCAL', id: item.id });
+    }
+  }
+
+  async function handleDelete() {
+    if (!item) return;
+    if (!window.confirm(`Remove "${item.title}" from your log?`)) return;
+    try {
+      await deleteEntry(item.id, user.id);
+      dispatch({ type: 'REMOVE_ENTRY', id: item.id });
+    } catch {
+      onToast('Could not delete — try again');
     }
   }
 
@@ -124,9 +135,15 @@ export default function DetailScreen({ active, state, dispatch, itemId, onBack, 
         <button className="detail-action" onClick={() => onToast('Reply coming soon')}>
           <span className="detail-action-icon">◻</span> COMMENT
         </button>
-        <button className="detail-action" onClick={() => onToast('Saved!')}>
-          <span className="detail-action-icon">+</span> SAVE
-        </button>
+        {item.userId === user?.id ? (
+          <button className="detail-action" style={{ color: 'var(--red)' }} onClick={handleDelete}>
+            <span className="detail-action-icon">✕</span> REMOVE
+          </button>
+        ) : (
+          <button className="detail-action" onClick={() => onToast('Saved!')}>
+            <span className="detail-action-icon">+</span> SAVE
+          </button>
+        )}
       </div>
       <div className="pb-safe" />
     </div>
