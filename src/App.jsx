@@ -30,6 +30,8 @@ export default function App() {
             modalType={state.modalType}
             modalStatus={state.modalStatus}
             modalRating={state.modalRating}
+            modalPosterPath={state.modalPosterPath}
+            modalYear={state.modalYear}
             user={state.user}
             dispatch={dispatch}
           />

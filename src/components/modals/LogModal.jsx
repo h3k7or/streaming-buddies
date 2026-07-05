@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { TYPE_LABELS, STATUS_OPTIONS } from '../../utils/content.js';
 
-export default function LogModal({ open, prefill, modalType, modalStatus, modalRating, user, dispatch }) {
+export default function LogModal({ open, prefill, modalType, modalStatus, modalRating, modalPosterPath, modalYear, user, dispatch }) {
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [review, setReview] = useState('');
@@ -42,13 +42,14 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
       avatarColor: user?.avatarColor || '#E84830',
       type: modalType,
       title: title.trim(),
-      year: new Date().getFullYear(),
+      year: modalYear || new Date().getFullYear(),
       status: modalStatus,
       rating: modalRating,
       review: review.trim() || null,
       wordSummary: words.map(w => w.trim().toLowerCase()).filter(Boolean),
       genre: genre.trim() || 'General',
       poster: posters[modalType] || '🎬',
+      posterPath: modalPosterPath || null,
       time: 'Just now',
       likes: 0,
     };
@@ -70,6 +71,19 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
           <button className="modal-close" onClick={() => { dispatch({ type: 'CLOSE_MODAL' }); resetForm(); }}>✕</button>
         </div>
         <div className="modal-body">
+          {modalPosterPath && (
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 2 }}>
+              <img
+                src={`https://image.tmdb.org/t/p/w92${modalPosterPath}`}
+                alt=""
+                style={{ width: 52, height: 74, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border)' }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 4 }}>
+                <div style={{ color: 'var(--text)', fontFamily: 'var(--serif)', fontSize: 15, fontWeight: 700 }}>{title}</div>
+                {modalYear && <div style={{ color: 'var(--dim)', fontFamily: 'var(--mono)', fontSize: 11 }}>{modalYear}</div>}
+              </div>
+            </div>
+          )}
           <div className="modal-label">TITLE</div>
           <input
             ref={titleRef}

@@ -18,8 +18,12 @@ export default function AppShell({ state, dispatch }) {
     dispatch({ type: 'SHOW_SCREEN', screen });
   }
 
-  function openModal(prefill = '') {
-    dispatch({ type: 'OPEN_MODAL', prefill });
+  function openModal(itemOrPrefill = '') {
+    if (typeof itemOrPrefill === 'string') {
+      dispatch({ type: 'OPEN_MODAL', prefill: itemOrPrefill });
+    } else {
+      dispatch({ type: 'OPEN_MODAL', item: itemOrPrefill });
+    }
   }
 
   function showToast(msg) {

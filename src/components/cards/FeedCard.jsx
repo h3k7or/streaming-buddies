@@ -3,6 +3,7 @@ import Avatar from '../ui/Avatar.jsx';
 import Stars from '../ui/Stars.jsx';
 import FilmStrip from '../ui/FilmStrip.jsx';
 import Badge from '../ui/Badge.jsx';
+import Poster from '../ui/Poster.jsx';
 import { TYPE_LABELS, TYPE_COLORS, STATUS_COLORS, getStatusLabel, getStatusIcon } from '../../utils/content.js';
 
 export default function FeedCard({ item, liked, onLike, onDetail, onToast }) {
@@ -20,9 +21,9 @@ export default function FeedCard({ item, liked, onLike, onDetail, onToast }) {
     <div className="feed-card" id={`card-${item.id}`}>
       <FilmStrip />
       <div className="card-body" onClick={() => onDetail(item.id)}>
-        <div className="poster-box">
-          <span style={{ fontSize: 26 }}>{item.poster}</span>
-          <div className="poster-bar" />
+        <div className="poster-box" style={{ overflow: 'hidden' }}>
+          <Poster posterPath={item.posterPath} emoji={item.poster} width={52} height={74} fontSize={26} />
+          <div className="poster-bar" style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }} />
         </div>
         <div className="card-content">
           <div className="card-user-row">

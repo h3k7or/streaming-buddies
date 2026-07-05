@@ -2,6 +2,7 @@ import Stars from '../components/ui/Stars.jsx';
 import Avatar from '../components/ui/Avatar.jsx';
 import FilmStrip from '../components/ui/FilmStrip.jsx';
 import Badge from '../components/ui/Badge.jsx';
+import Poster from '../components/ui/Poster.jsx';
 import { TYPE_LABELS, TYPE_COLORS, STATUS_COLORS, getStatusLabel, getStatusIcon } from '../utils/content.js';
 
 export default function DetailScreen({ active, state, dispatch, itemId, onBack, onToast }) {
@@ -42,8 +43,8 @@ export default function DetailScreen({ active, state, dispatch, itemId, onBack, 
       </div>
 
       <div className="detail-hero" style={{ borderBottom: `3px solid ${typeColor}88` }}>
-        <div className="detail-poster">
-          <span style={{ fontSize: 38 }}>{item.poster}</span>
+        <div className="detail-poster" style={{ overflow: 'hidden' }}>
+          <Poster posterPath={item.posterPath} emoji={item.poster} width={80} height={112} fontSize={38} />
           <div className="detail-poster-bar" style={{ background: typeColor }} />
         </div>
         <div className="detail-info">

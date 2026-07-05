@@ -24,6 +24,8 @@ const initialState = {
   modalType: 'movie',
   modalStatus: 'finished',
   modalRating: 4,
+  modalPosterPath: null,
+  modalYear: null,
   toast: null,
   showingAuth: false,
 };
@@ -66,11 +68,20 @@ function reducer(state, action) {
       return { ...state, people };
     }
 
-    case 'OPEN_MODAL':
-      return { ...state, modalOpen: true, modalPrefill: action.prefill || '' };
+    case 'OPEN_MODAL': {
+      const item = action.item || {};
+      return {
+        ...state,
+        modalOpen: true,
+        modalPrefill: item.title || action.prefill || '',
+        modalType: item.type || state.modalType,
+        modalPosterPath: item.posterPath || null,
+        modalYear: item.year || null,
+      };
+    }
 
     case 'CLOSE_MODAL':
-      return { ...state, modalOpen: false, modalPrefill: '' };
+      return { ...state, modalOpen: false, modalPrefill: '', modalPosterPath: null, modalYear: null };
 
     case 'SET_MODAL_TYPE':
       return { ...state, modalType: action.modalType, modalStatus: 'finished' };
