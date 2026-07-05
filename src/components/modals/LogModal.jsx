@@ -1,19 +1,67 @@
 import { useState, useEffect, useRef } from 'react';
 import { TYPE_LABELS, STATUS_OPTIONS } from '../../utils/content.js';
+import { searchMovies, searchTV, POSTER_SM } from '../../utils/tmdb.js';
 
 export default function LogModal({ open, prefill, modalType, modalStatus, modalRating, modalPosterPath, modalYear, user, dispatch, actions }) {
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [review, setReview] = useState('');
   const [words, setWords] = useState(['', '', '']);
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
   const titleRef = useRef(null);
+  const searchTimeout = useRef(null);
 
   useEffect(() => {
     if (open) {
       setTitle(prefill || '');
+      setGenre('');
+      setSelectedItem(null);
+      setResults([]);
       setTimeout(() => titleRef.current?.focus(), 100);
     }
   }, [open, prefill]);
+
+  // Search TMDb as user types
+  useEffect(() => {
+    if (!open) return;
+    if (title.length < 2 || selectedItem) {
+      setResults([]);
+      return;
+    }
+    clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const fn = modalType === 'tv' ? searchTV : searchMovies;
+        const res = await fn(title);
+        setResults(res.slice(0, 5));
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+    return () => clearTimeout(searchTimeout.current);
+  }, [title, modalType, open, selectedItem]);
+
+  function selectResult(item) {
+    setTitle(item.title);
+    setGenre(item.genre || '');
+    setSelectedItem(item);
+    setResults([]);
+    dispatch({ type: 'OPEN_MODAL', item });
+  }
+
+  function clearSelection() {
+    setSelectedItem(null);
+    setTitle('');
+    setGenre('');
+    dispatch({ type: 'CLOSE_MODAL' });
+    dispatch({ type: 'OPEN_MODAL', prefill: '' });
+    setTimeout(() => titleRef.current?.focus(), 50);
+  }
 
   function enforceOneWord(val) {
     return val.replace(/\s+/g, '');
@@ -30,6 +78,8 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
     setGenre('');
     setReview('');
     setWords(['', '', '']);
+    setResults([]);
+    setSelectedItem(null);
   }
 
   async function handleSubmit() {
@@ -37,20 +87,21 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
     const entry = {
       type: modalType,
       title: title.trim(),
-      year: modalYear || new Date().getFullYear(),
+      year: modalYear || selectedItem?.year || new Date().getFullYear(),
       status: modalStatus,
       rating: modalRating,
       review: review.trim() || null,
       wordSummary: words.map(w => w.trim().toLowerCase()).filter(Boolean),
-      genre: genre.trim() || 'General',
-      posterPath: modalPosterPath || null,
+      genre: genre.trim() || null,
+      posterPath: modalPosterPath || selectedItem?.posterPath || null,
+      tmdbId: selectedItem?.tmdbId || null,
     };
     try {
       await actions.submitLog(entry);
       dispatch({ type: 'SHOW_TOAST', msg: `"${entry.title}" logged!` });
       dispatch({ type: 'SHOW_SCREEN', screen: 'feed' });
       resetForm();
-    } catch (err) {
+    } catch {
       dispatch({ type: 'SHOW_TOAST', msg: 'Failed to save — try again' });
     }
   }
@@ -67,48 +118,80 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
           <button className="modal-close" onClick={() => { dispatch({ type: 'CLOSE_MODAL' }); resetForm(); }}>✕</button>
         </div>
         <div className="modal-body">
-          {modalPosterPath && (
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 2 }}>
-              <img
-                src={`https://image.tmdb.org/t/p/w92${modalPosterPath}`}
-                alt=""
-                style={{ width: 52, height: 74, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border)' }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 4 }}>
-                <div style={{ color: 'var(--text)', fontFamily: 'var(--serif)', fontSize: 15, fontWeight: 700 }}>{title}</div>
-                {modalYear && <div style={{ color: 'var(--dim)', fontFamily: 'var(--mono)', fontSize: 11 }}>{modalYear}</div>}
-              </div>
-            </div>
-          )}
-          <div className="modal-label">TITLE</div>
-          <input
-            ref={titleRef}
-            className="modal-text-input"
-            placeholder="Title…"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-          />
 
-          <div className="modal-label">GENRE</div>
-          <input
-            className="modal-text-input"
-            placeholder="e.g. Sci-Fi, Literary Fiction, True Crime…"
-            value={genre}
-            onChange={e => setGenre(e.target.value)}
-          />
-
+          {/* TYPE — always first */}
           <div className="modal-label">TYPE</div>
-          <div className="chip-row">
+          <div className="chip-row" style={{ marginBottom: 14 }}>
             {['movie', 'tv'].map(t => (
               <button
                 key={t}
                 className={`chip${modalType === t ? ' active' : ''}`}
-                onClick={() => dispatch({ type: 'SET_MODAL_TYPE', modalType: t })}
+                onClick={() => { dispatch({ type: 'SET_MODAL_TYPE', modalType: t }); setSelectedItem(null); setResults([]); }}
               >
                 {TYPE_LABELS[t]}
               </button>
             ))}
           </div>
+
+          {/* TITLE with TMDb search */}
+          <div className="modal-label">TITLE</div>
+          {selectedItem && modalPosterPath ? (
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 12, background: 'var(--card)', border: '1px solid var(--border)', padding: 10 }}>
+              <img
+                src={`${POSTER_SM}${modalPosterPath}`}
+                alt=""
+                style={{ width: 44, height: 62, objectFit: 'cover', flexShrink: 0 }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: 'var(--text)', fontFamily: 'var(--serif)', fontSize: 14, fontWeight: 700 }}>{title}</div>
+                {modalYear && <div style={{ color: 'var(--dim)', fontFamily: 'var(--mono)', fontSize: 10, marginTop: 2 }}>{modalYear}</div>}
+                {genre && <div style={{ color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 10, marginTop: 2 }}>{genre}</div>}
+              </div>
+              <button onClick={clearSelection} style={{ background: 'none', border: 'none', color: 'var(--dim)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>✕</button>
+            </div>
+          ) : (
+            <div style={{ position: 'relative' }}>
+              <input
+                ref={titleRef}
+                className="modal-text-input"
+                placeholder={`Search for a ${modalType === 'tv' ? 'series' : 'film'}…`}
+                value={title}
+                onChange={e => { setTitle(e.target.value); setSelectedItem(null); }}
+              />
+              {searching && (
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--dim)', padding: '4px 0', letterSpacing: 1 }}>SEARCHING…</div>
+              )}
+              {results.length > 0 && (
+                <div style={{ border: '1px solid var(--border)', background: 'var(--card)', marginTop: 2 }}>
+                  {results.map(item => (
+                    <div
+                      key={item.tmdbId}
+                      onClick={() => selectResult(item)}
+                      style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}
+                    >
+                      {item.posterPath
+                        ? <img src={`${POSTER_SM}${item.posterPath}`} alt="" style={{ width: 28, height: 40, objectFit: 'cover', flexShrink: 0 }} />
+                        : <div style={{ width: 28, height: 40, background: 'var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{modalType === 'tv' ? '📺' : '🎬'}</div>
+                      }
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ color: 'var(--text)', fontFamily: 'var(--serif)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</div>
+                        <div style={{ color: 'var(--dim)', fontFamily: 'var(--mono)', fontSize: 10 }}>{item.year}{item.genre ? ` · ${item.genre}` : ''}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* GENRE — auto-filled, editable */}
+          <div className="modal-label" style={{ marginTop: 10 }}>GENRE</div>
+          <input
+            className="modal-text-input"
+            placeholder="e.g. Sci-Fi, Drama…"
+            value={genre}
+            onChange={e => setGenre(e.target.value)}
+          />
 
           <div className="modal-label">STATUS</div>
           <div className="chip-row">
@@ -146,7 +229,10 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
             onChange={e => setReview(e.target.value)}
           />
 
-          <div className="modal-label" style={{ marginTop: 8 }}>YOUR 3 WORD SUMMARY</div>
+          <div className="modal-label" style={{ marginTop: 8 }}>
+            3 WORD SUMMARY
+            <span style={{ color: 'var(--dim)', fontFamily: 'var(--mono)', fontSize: 9, marginLeft: 8, letterSpacing: 0 }}>optional</span>
+          </div>
           <div className="word-summary-row">
             {words.map((w, i) => (
               <input
@@ -163,7 +249,7 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
               />
             ))}
           </div>
-          <div className="word-counter">{wordCount} / 3 words</div>
+          {wordCount > 0 && <div className="word-counter">{wordCount} / 3 words</div>}
 
           <button
             className="modal-submit"

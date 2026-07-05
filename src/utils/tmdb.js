@@ -14,8 +14,31 @@ async function get(path) {
   return res.json();
 }
 
+// Genre lists cached in module scope
+let movieGenres = null;
+let tvGenres = null;
+
+async function getMovieGenres() {
+  if (!movieGenres) {
+    const data = await get('/genre/movie/list?language=en-US&');
+    movieGenres = Object.fromEntries((data.genres || []).map(g => [g.id, g.name]));
+  }
+  return movieGenres;
+}
+
+async function getTVGenres() {
+  if (!tvGenres) {
+    const data = await get('/genre/tv/list?language=en-US&');
+    tvGenres = Object.fromEntries((data.genres || []).map(g => [g.id, g.name]));
+  }
+  return tvGenres;
+}
+
 export async function searchMovies(query) {
-  const data = await get(`/search/movie?query=${encodeURIComponent(query)}&include_adult=false&`);
+  const [data, genres] = await Promise.all([
+    get(`/search/movie?query=${encodeURIComponent(query)}&include_adult=false&`),
+    getMovieGenres(),
+  ]);
   return (data.results || []).map(r => ({
     tmdbId: r.id,
     title: r.title,
@@ -23,12 +46,16 @@ export async function searchMovies(query) {
     posterPath: r.poster_path,
     overview: r.overview,
     rating: r.vote_average ? Math.round(r.vote_average / 2) : null,
+    genre: (r.genre_ids || []).slice(0, 2).map(id => genres[id]).filter(Boolean).join(', ') || null,
     type: 'movie',
   }));
 }
 
 export async function searchTV(query) {
-  const data = await get(`/search/tv?query=${encodeURIComponent(query)}&include_adult=false&`);
+  const [data, genres] = await Promise.all([
+    get(`/search/tv?query=${encodeURIComponent(query)}&include_adult=false&`),
+    getTVGenres(),
+  ]);
   return (data.results || []).map(r => ({
     tmdbId: r.id,
     title: r.name,
@@ -36,6 +63,7 @@ export async function searchTV(query) {
     posterPath: r.poster_path,
     overview: r.overview,
     rating: r.vote_average ? Math.round(r.vote_average / 2) : null,
+    genre: (r.genre_ids || []).slice(0, 2).map(id => genres[id]).filter(Boolean).join(', ') || null,
     type: 'tv',
   }));
 }
