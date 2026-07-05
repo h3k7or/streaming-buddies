@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>StreamingBuddies — Social Watchlog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Variables ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#1E2130;--bg-void:#252838;--bg-surface:#2C3045;--bg-card:#333750;--bg-strip:#252838;
+  --border:rgba(255,255,255,0.10);--border-mid:rgba(255,255,255,0.16);
+  --red:#E84830;--red-muted:rgba(232,72,48,0.15);--gold:#C8A96E;--coral:#E84830;
+  --green:#3CC68A;--amber:#C8A96E;--purple:#7B6EF5;--navy:#4A90D9;
+  --text:#F0F2F6;--muted:#BCC4D4;--dim:#7A8298;--tiny:#4A5268;
+  --serif:'Playfair Display',Georgia,serif;--mono:'DM Sans',system-ui,sans-serif;--lora:'DM Sans',system-ui,sans-serif;
+  --max:480px;--nav-h:52px;--header-h:62px;
+}
+
+html, body {
+  background: #0D0F14;
+  color: var(--text);
+  font-family: var(--lora);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Layout Shell ────────────────────────────────────────────── */
+#app { display: flex; flex-direction: column; height: 100dvh; max-width: var(--max); margin: 0 auto; position: relative; overflow: hidden; }
+
+/* ── Header ──────────────────────────────────────────────────── */
+#header {
+  flex-shrink: 0;
+  background: var(--bg-void);
+  border-bottom: 2px solid var(--red);
+  padding: 14px 18px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+.logo { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -.5px; line-height: 1; }
+.logo span { /* colour set inline */ }
+.tagline { font-family: var(--mono); font-size: 7px; color: var(--dim); letter-spacing: 3px; margin-top: 3px; }
+#log-btn {
+  background: var(--red); border: none; color: #fff;
+  font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+  padding: 8px 14px; cursor: pointer; flex-shrink: 0;
+  transition: opacity .15s;
+}
+#log-btn:active { opacity: .75; }
+
+/* ── Screens ─────────────────────────────────────────────────── */
+#screens { flex: 1; overflow: hidden; position: relative; }
+.screen { position: absolute; inset: 0; overflow-y: auto; overflow-x: hidden; display: none; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+.screen.active { display: block; }
+
+/* ── Bottom Nav ──────────────────────────────────────────────── */
+#nav {
+  flex-shrink: 0;
+  height: var(--nav-h);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  z-index: 10;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; border: none; background: none; cursor: pointer;
+  font-family: var(--mono); font-size: 8px; letter-spacing: 1.5px;
+  color: var(--tiny); gap: 2px; padding: 6px 2px;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.nav-btn.active { color: var(--text); border-bottom-color: var(--red); }
+.nav-icon { font-size: 14px; line-height: 1; }
+
+/* ── Film Strip ──────────────────────────────────────────────── */
+.film-strip {
+  display: flex; gap: 5px; padding: 6px 10px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.film-hole {
+  width: 10px; height: 6px; flex-shrink: 0;
+  background: var(--bg-void);
+  border: 1px solid var(--border); border-radius: 1px;
+}
+
+/* ── Filter Bar ──────────────────────────────────────────────── */
+.filter-bar {
+  display: flex; gap: 5px; padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; scrollbar-width: none;
+  background: var(--bg); position: sticky; top: 0; z-index: 5;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-btn {
+  flex-shrink: 0; border: 1px solid var(--border); background: none;
+  color: var(--tiny); font-family: var(--mono); font-size: 8.5px;
+  letter-spacing: 1.5px; padding: 5px 10px; cursor: pointer;
+  transition: all .15s;
+}
+.filter-btn.active { background: var(--red-muted); border-color: rgba(232,72,48,.5); color: var(--red); }
+
+/* ── Feed Card ───────────────────────────────────────────────── */
+.feed-card {
+  background: var(--bg-card);
+  border-top: 3px solid rgba(232,72,48,0.3);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  cursor: pointer;
+  transition: border-top-color .2s, box-shadow .2s;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.4);
+}
+.feed-card:hover { box-shadow: 0 2px 16px rgba(0,0,0,0.5); }
+.feed-card:hover { border-top-color: var(--red); }
+.card-body { display: flex; gap: 12px; padding: 14px 16px; }
+.poster-box {
+  width: 52px; height: 74px; flex-shrink: 0;
+  background: var(--bg); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; position: relative;
+}
+.poster-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--red); }
+.card-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.card-user-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.avatar {
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif); font-weight: 700; flex-shrink: 0;
+}
+.card-username { color: #d4c9b8; font-size: 12px; font-weight: 700; font-family: var(--lora); }
+.card-time { color: var(--tiny); font-size: 10px; font-family: var(--mono); }
+.card-title-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.card-title { color: var(--text); font-size: 15px; font-weight: 700; font-family: var(--serif); letter-spacing: -.3px; }
+.card-year { color: var(--dim); font-size: 11px; font-family: var(--mono); }
+.badges { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.badge {
+  font-family: var(--mono); font-size: 8.5px; letter-spacing: 1.5px;
+  text-transform: uppercase; border: 1px solid; padding: 2px 6px; border-radius: 1px;
+}
+.stars { display: flex; gap: 1px; }
+.star { font-size: 12px; line-height: 1; }
+.card-review {
+  color: var(--muted); font-size: 12px; line-height: 1.55;
+  font-style: italic; font-family: var(--lora);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card-review.expanded { display: block; }
+.expand-btn { color: var(--red); font-size: 8.5px; font-family: var(--mono); letter-spacing: 1px; background: none; border: none; cursor: pointer; padding: 3px 0 0; }
+.card-actions {
+  border-top: 1px solid var(--border);
+  display: flex; gap: 16px; padding: 8px 16px;
+}
+.action-btn {
+  display: flex; align-items: center; gap: 4px; background: none; border: none;
+  color: var(--tiny); font-family: var(--mono); font-size: 9px; letter-spacing: 1px;
+  cursor: pointer; padding: 0; transition: color .15s;
+}
+.action-btn:hover { color: var(--muted); }
+.action-btn.liked { color: var(--red); }
+.action-icon { font-size: 13px; }
+
+/* ── Section Header ──────────────────────────────────────────── */
+.section-header {
+  font-family: var(--mono); font-size: 8.5px; letter-spacing: 3px;
+  color: var(--tiny); padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg); z-index: 4;
+}
+
+/* ── Search ──────────────────────────────────────────────────── */
+.search-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-card); border-bottom: 2px solid var(--red);
+  padding: 10px 16px; position: sticky; top: 0; z-index: 5;
+}
+.search-icon { color: var(--dim); font-size: 18px; }
+#search-input {
+  flex: 1; background: none; border: none; color: var(--text);
+  font-size: 15px; font-family: var(--lora); outline: none;
+}
+#search-input::placeholder { color: var(--tiny); }
+.search-clear { background: none; border: none; color: var(--dim); font-size: 14px; cursor: pointer; }
+.search-spinner { color: var(--red); font-size: 14px; display: none; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.result-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg-card); border-bottom: 1px solid var(--border);
+  padding: 12px 14px;
+}
+.result-img { width: 40px; height: 56px; object-fit: cover; border-radius: 1px; flex-shrink: 0; }
+.result-img-fallback {
+  width: 40px; height: 56px; flex-shrink: 0;
+  background: var(--bg); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+.result-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.result-title { color: var(--text); font-size: 13px; font-weight: 700; font-family: var(--serif); }
+.result-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.result-sub { color: var(--tiny); font-size: 10px; font-family: var(--mono); }
+.result-log-btn {
+  flex-shrink: 0; border: 1px solid rgba(232,72,48,.55);
+  background: none; color: var(--red); font-family: var(--mono);
+  font-size: 8.5px; letter-spacing: 1.5px; padding: 5px 8px; cursor: pointer;
+  transition: background .15s;
+}
+.result-log-btn:hover { background: var(--red-muted); }
+.browse-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 20px 16px; }
+.browse-tile {
+  background: var(--bg-card); border: 1px solid;
+  padding: 24px 16px; display: flex; flex-direction: column;
+  align-items: center; gap: 8px; cursor: pointer;
+  transition: background .15s;
+}
+.browse-tile:hover { background: var(--bg-surface); }
+.browse-emoji { font-size: 30px; }
+.browse-label { font-family: var(--mono); font-size: 10px; letter-spacing: 2px; }
+.recent-list { padding: 6px 16px 0; }
+.recent-label { color: var(--tiny); font-size: 8.5px; font-family: var(--mono); letter-spacing: 2px; padding: 10px 0 8px; }
+.recent-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--border); cursor: pointer;
+}
+.recent-item:last-child { border: none; }
+.recent-icon { color: var(--dim); font-size: 13px; }
+.recent-text { color: var(--muted); font-size: 14px; font-family: var(--lora); }
+
+/* ── Trending ────────────────────────────────────────────────── */
+.trending-row {
+  display: flex; align-items: center; gap: 11px;
+  background: var(--bg-card);
+  border-left: 3px solid var(--red);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 14px; margin-bottom: 4px;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.35);
+}
+.trend-rank { font-family: var(--mono); font-size: 11px; color: var(--red); width: 22px; flex-shrink: 0; }
+.trend-poster { font-size: 26px; flex-shrink: 0; }
+.trend-poster img { width: 40px; height: 56px; object-fit: cover; border-radius: 1px; }
+.trend-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.trend-title { color: var(--text); font-size: 14px; font-weight: 700; font-family: var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trend-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.trend-rating { color: var(--tiny); font-size: 10px; font-family: var(--mono); }
+.watcher-box { text-align: right; flex-shrink: 0; }
+.watcher-count { color: var(--red); font-size: 17px; font-weight: 700; font-family: var(--mono); }
+.watcher-label { color: var(--tiny); font-size: 7.5px; font-family: var(--mono); letter-spacing: 1px; }
+.live-badge {
+  background: rgba(45,106,79,.15); border: 1px solid rgba(45,106,79,.4);
+  color: #3CC68A; font-family: var(--mono); font-size: 7.5px;
+  letter-spacing: 2px; padding: 2px 7px;
+}
+
+/* ── People ──────────────────────────────────────────────────── */
+.people-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.people-tab {
+  flex: 1; padding: 12px; text-align: center; background: none; border: none;
+  color: var(--tiny); font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+  cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s;
+}
+.people-tab.active { color: var(--text); border-bottom-color: var(--red); }
+#people-list {
+  transition: opacity .1s ease;
+}
+.person-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--bg-card); border-bottom: 1px solid var(--border);
+  padding: 14px;
+}
+.person-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.person-name-row { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.person-name { color: var(--text); font-size: 14px; font-weight: 700; font-family: var(--serif); }
+.person-username { color: var(--dim); font-size: 11px; font-family: var(--mono); }
+.person-bio { color: var(--muted); font-size: 12px; font-style: italic; font-family: var(--lora); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.person-stats { display: flex; align-items: center; gap: 6px; }
+.person-stat { color: var(--tiny); font-size: 10px; font-family: var(--mono); }
+.person-stat b { color: var(--muted); }
+.person-last { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--border); padding: 4px 8px; margin-top: 2px; }
+.person-last-emoji { font-size: 13px; }
+.person-last-title { flex: 1; color: var(--muted); font-size: 11px; font-family: var(--lora); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.follow-btn {
+  flex-shrink: 0; align-self: flex-start; margin-top: 2px;
+  border: 1px solid rgba(232,72,48,.55); background: none;
+  color: var(--red); font-family: var(--mono); font-size: 8px;
+  letter-spacing: 1.5px; padding: 6px 9px; cursor: pointer; transition: background .15s;
+}
+.follow-btn.following { background: var(--red-muted); border-color: var(--red); }
+.follow-btn:hover { background: var(--red-muted); }
+
+/* ── Profile ─────────────────────────────────────────────────── */
+.profile-hero {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 28px 20px; border-bottom: 1px solid var(--border); gap: 10px;
+}
+.profile-name { color: var(--text); font-size: 20px; font-weight: 700; font-family: var(--serif); }
+.profile-handle { color: var(--dim); font-size: 12px; font-family: var(--mono); }
+.profile-bio { color: var(--muted); font-size: 13px; font-style: italic; font-family: var(--lora); text-align: center; }
+.stats-row { display: flex; gap: 1px; }
+.stat-box {
+  flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+  padding: 14px 8px; text-align: center;
+}
+.stat-val { color: var(--red); font-size: 21px; font-weight: 700; font-family: var(--mono); }
+.stat-lbl { color: var(--tiny); font-size: 7px; font-family: var(--mono); letter-spacing: 1.5px; margin-top: 3px; }
+.settings-section { border-top: 1px solid var(--border); margin-top: 20px; }
+.settings-lbl { color: var(--tiny); font-size: 8.5px; font-family: var(--mono); letter-spacing: 3px; padding: 12px 16px 8px; }
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  background: var(--bg-card); cursor: pointer; transition: background .15s;
+}
+.settings-row:hover { background: var(--bg-surface); }
+.settings-row-text { color: var(--muted); font-size: 14px; font-family: var(--lora); }
+.settings-arrow { color: var(--tiny); font-size: 18px; }
+.settings-row.danger .settings-row-text { color: #E84830; }
+.entry-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg-card);
+  border-left: 3px solid var(--red);
+  border-bottom: 1px solid var(--border);
+  padding: 11px 14px; margin-bottom: 2px;
+}
+.entry-poster { font-size: 22px; }
+.entry-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.entry-title { color: var(--text); font-size: 14px; font-weight: 700; font-family: var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.entry-meta { display: flex; gap: 7px; align-items: center; flex-wrap: wrap; }
+.entry-time { color: var(--tiny); font-size: 9px; font-family: var(--mono); }
+
+/* ── Detail Screen ───────────────────────────────────────────── */
+#detail-screen { background: var(--bg); }
+.detail-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg); z-index: 5;
+}
+.detail-back { display: flex; align-items: center; gap: 6px; background: none; border: none; cursor: pointer; }
+.detail-back-arrow { color: var(--red); font-size: 18px; }
+.detail-back-label { color: var(--dim); font-size: 10px; font-family: var(--mono); letter-spacing: 2px; }
+.detail-share { color: var(--dim); font-size: 10px; font-family: var(--mono); letter-spacing: 2px; background: none; border: none; cursor: pointer; }
+.detail-hero {
+  display: flex; gap: 16px; padding: 20px 16px;
+  background: var(--bg-card);
+}
+.detail-poster {
+  width: 80px; height: 112px; flex-shrink: 0;
+  background: var(--bg); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 38px; position: relative;
+}
+.detail-poster-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 4px; }
+.detail-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; justify-content: center; }
+.detail-title { color: var(--text); font-size: 20px; font-weight: 700; font-family: var(--serif); letter-spacing: -.5px; line-height: 1.25; }
+.detail-year { color: var(--dim); font-size: 13px; font-family: var(--mono); }
+.detail-genre { color: var(--tiny); font-size: 10px; font-family: var(--mono); letter-spacing: 1px; }
+.detail-section { padding: 16px; border-bottom: 1px solid var(--border); }
+.detail-section-label { color: var(--tiny); font-size: 8.5px; font-family: var(--mono); letter-spacing: 3px; margin-bottom: 10px; }
+.detail-review-text { color: var(--muted); font-size: 15px; font-style: italic; font-family: var(--lora); line-height: 1.6; }
+.detail-logged-by { display: flex; align-items: center; gap: 12px; }
+.detail-logged-name { color: var(--text); font-size: 15px; font-weight: 700; font-family: var(--serif); }
+.detail-logged-time { color: var(--tiny); font-size: 11px; font-family: var(--mono); margin-top: 2px; }
+.detail-actions { display: flex; border-top: 1px solid var(--border); }
+.detail-action {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 14px 4px; border: none; background: none; cursor: pointer;
+  border-right: 1px solid var(--border); color: var(--tiny);
+  font-family: var(--mono); font-size: 8.5px; letter-spacing: 1.5px;
+  transition: background .15s, color .15s;
+}
+.detail-action:last-child { border-right: none; }
+.detail-action:hover { background: var(--red-muted); }
+.detail-action.liked { background: var(--red-muted); color: var(--red); }
+.detail-action-icon { font-size: 15px; }
+
+/* ── Log Modal ───────────────────────────────────────────────── */
+#modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.8);
+  z-index: 100; display: none; align-items: flex-end;
+  justify-content: center;
+}
+#modal-overlay.open { display: flex; }
+#modal-sheet {
+  background: var(--bg-card);
+  border-top: 2px solid var(--red);
+  width: 100%; max-width: var(--max);
+  max-height: 90dvh;
+  display: flex; flex-direction: column;
+  animation: slideUp .25s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.modal-title { font-family: var(--mono); font-size: 11px; letter-spacing: 3px; color: var(--text); }
+.modal-close { background: none; border: none; color: var(--dim); font-size: 18px; cursor: pointer; }
+.modal-body { overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; -webkit-overflow-scrolling: touch; }
+.modal-label { color: var(--dim); font-size: 9px; font-family: var(--mono); letter-spacing: 2px; margin-bottom: -8px; }
+#modal-title-input {
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 12px 14px; font-size: 15px; font-family: var(--lora); outline: none; width: 100%;
+  transition: border-color .2s;
+}
+#modal-title-input:focus { border-color: var(--red); }
+.chip-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip {
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--dim); font-family: var(--mono); font-size: 10px;
+  letter-spacing: 1px; padding: 7px 12px; cursor: pointer;
+  text-transform: uppercase; transition: all .15s;
+}
+.chip.active { background: var(--red-muted); border-color: var(--red); color: var(--red); }
+.format-row { display: flex; gap: 8px; }
+.format-chip {
+  flex: 1; border: 1px solid var(--border); background: var(--bg);
+  color: var(--dim); font-family: var(--mono); font-size: 11px;
+  padding: 11px 8px; cursor: pointer; text-align: center; transition: all .15s;
+}
+.format-chip.active-physical { background: rgba(123,110,245,.12); border-color: rgba(123,110,245,.5); color: var(--purple); }
+.format-chip.active-audio { background: rgba(200,169,110,.12); border-color: rgba(200,169,110,.5); color: var(--gold); }
+.format-chip.active-video { background: rgba(74,144,217,.12); border-color: rgba(74,144,217,.5); color: var(--navy); }
+#media-format-section { display: none; }
+.stars-input { display: flex; gap: 5px; }
+.star-btn { font-size: 28px; background: none; border: none; cursor: pointer; line-height: 1; padding: 0; transition: transform .1s; }
+.star-btn:active { transform: scale(1.3); }
+#modal-review {
+  background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+  padding: 12px 14px; font-size: 13px; font-family: var(--lora); font-style: italic;
+  outline: none; width: 100%; resize: none; min-height: 90px;
+  transition: border-color .2s;
+}
+#modal-review:focus { border-color: var(--red); }
+#modal-submit {
+  background: var(--red); border: none; color: #fff;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 3px;
+  padding: 14px; cursor: pointer; width: 100%; transition: opacity .15s;
+}
+#modal-submit:disabled { opacity: .4; cursor: not-allowed; }
+#modal-submit:not(:disabled):active { opacity: .8; }
+
+/* ── Auth Screen ─────────────────────────────────────────────── */
+#auth-screen {
+  position: fixed; inset: 0; background: var(--bg-void);
+  z-index: 200; display: none; flex-direction: column;
+  overflow-y: auto; align-items: center;
+  max-width: var(--max); margin: 0 auto;
+}
+#auth-screen.visible { display: flex; }
+.auth-strip { display: flex; gap: 8px; justify-content: center; padding: 10px; background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); width: 100%; }
+.auth-hole { width: 12px; height: 8px; background: var(--bg-void); border: 1px solid var(--border); border-radius: 2px; }
+.auth-logo-block { padding: 36px 0 24px; text-align: center; }
+.auth-logo { font-family: var(--serif); font-size: 36px; font-weight: 700; color: var(--text); letter-spacing: -1px; }
+.auth-logo span { /* colour set inline */ }
+.auth-tagline { font-family: var(--mono); font-size: 9px; color: var(--tiny); letter-spacing: 4px; margin-top: 6px; }
+.auth-toggle { display: flex; border: 1px solid var(--border); margin: 0 24px 24px; }
+.auth-tab {
+  flex: 1; padding: 11px; text-align: center; background: none; border: none;
+  color: var(--tiny); font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px;
+  cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s;
+}
+.auth-tab.active { color: var(--red); border-bottom-color: var(--red); background: var(--red-muted); }
+.auth-form { padding: 0 24px; display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.auth-label { color: var(--tiny); font-size: 8.5px; font-family: var(--mono); letter-spacing: 2px; margin-top: 10px; margin-bottom: 5px; }
+.auth-input {
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+  padding: 13px 14px; font-size: 15px; font-family: var(--lora); outline: none; width: 100%;
+  transition: border-color .2s;
+}
+.auth-input:focus { border-color: var(--red); }
+.auth-error { color: #E84830; font-size: 11px; font-family: var(--mono); letter-spacing: .5px; text-align: center; min-height: 18px; margin-top: 6px; }
+.auth-submit {
+  background: var(--red); border: none; color: #fff;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 3px;
+  padding: 15px; cursor: pointer; width: 100%; margin-top: 16px;
+  transition: opacity .15s;
+}
+.auth-submit:hover { opacity: .9; }
+.auth-demo { text-align: center; padding: 14px 24px 32px; }
+.auth-demo-btn { background: none; border: none; color: var(--tiny); font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; text-decoration: underline; cursor: pointer; }
+.signup-only { display: none; }
+
+/* ── Onboarding ──────────────────────────────────────────────── */
+#onboarding {
+  position: fixed; inset: 0; background: var(--bg-void);
+  z-index: 300; display: none; flex-direction: column;
+  overflow: hidden; max-width: var(--max); margin: 0 auto;
+}
+#onboarding.visible { display: flex; }
+.ob-strip { display: flex; gap: 8px; justify-content: center; padding: 10px; background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.ob-hole { width: 12px; height: 8px; background: var(--bg-void); border: 1px solid var(--border); border-radius: 2px; }
+.ob-logo-row { text-align: center; padding: 24px 0 0; }
+.ob-logo { font-family: var(--serif); font-size: 26px; font-weight: 700; color: var(--text); letter-spacing: -.5px; }
+.ob-logo span { color: var(--red); }
+.ob-slide { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 40px; gap: 20px; }
+.ob-emoji-wrap { width: 96px; height: 96px; border: 2px solid; border-radius: 48px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; font-size: 44px; }
+.ob-title { font-family: var(--serif); font-size: 24px; font-weight: 700; color: var(--text); text-align: center; line-height: 1.3; letter-spacing: -.5px; }
+.ob-body { color: var(--muted); font-size: 15px; font-family: var(--lora); text-align: center; line-height: 1.55; }
+.ob-dots { display: flex; justify-content: center; gap: 8px; padding: 16px 0; }
+.ob-dot { width: 8px; height: 8px; border-radius: 4px; background: var(--border); transition: all .25s; cursor: pointer; }
+.ob-dot.active { background: var(--red); width: 20px; }
+.ob-actions { padding: 0 24px 28px; display: flex; flex-direction: column; gap: 10px; }
+.ob-primary { background: var(--red); border: none; color: #fff; font-family: var(--mono); font-size: 11px; letter-spacing: 3px; padding: 15px; cursor: pointer; width: 100%; transition: opacity .15s; }
+.ob-skip { background: none; border: none; color: var(--tiny); font-family: var(--mono); font-size: 9px; letter-spacing: 2px; padding: 8px; cursor: pointer; text-align: center; width: 100%; }
+
+/* ── Empty States ────────────────────────────────────────────── */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 40px; gap: 10px; text-align: center; }
+.empty-emoji { font-size: 48px; margin-bottom: 8px; }
+.empty-title { color: var(--muted); font-size: 17px; font-family: var(--serif); font-weight: 700; }
+.empty-hint { color: var(--tiny); font-size: 11px; font-family: var(--mono); letter-spacing: 1px; }
+.empty-btn { margin-top: 10px; background: var(--red); border: none; color: #fff; font-family: var(--mono); font-size: 10px; letter-spacing: 2px; padding: 10px 18px; cursor: pointer; }
+
+/* ── Toast ───────────────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: calc(var(--nav-h) + 16px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  color: var(--text); font-family: var(--mono); font-size: 11px; letter-spacing: 1px;
+  padding: 10px 18px; z-index: 50;
+  opacity: 0; pointer-events: none;
+  white-space: nowrap; max-width: calc(var(--max) - 40px);
+  transition: opacity .15s ease;
+}
+#toast.show {
+  opacity: 1;
+  animation: bounceIn .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+.screen::-webkit-scrollbar { width: 4px; }
+.screen::-webkit-scrollbar-track { background: var(--bg); }
+.screen::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* ── Utility ─────────────────────────────────────────────────── */
+.pb-safe { padding-bottom: 20px; }
+
+/* ── 3-Word Summary ──────────────────────────────────────────── */
+.word-summary-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.word-input {
+  flex: 1;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 1px;
+  padding: 10px 10px;
+  text-align: center;
+  text-transform: lowercase;
+  outline: none;
+  transition: border-color .2s, border-bottom-color .2s;
+  min-width: 0;
+}
+.word-input:focus {
+  border-color: var(--red);
+  border-bottom-color: var(--red);
+}
+.word-input::placeholder {
+  color: var(--border-mid);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.word-counter {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--tiny);
+  letter-spacing: 1px;
+  text-align: right;
+  margin-top: 2px;
+}
+/* Display on cards */
+.summary-pills {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.summary-pill {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--red);
+  border: 1px solid rgba(232,72,48,.3);
+  background: rgba(232,72,48,.06);
+  padding: 2px 8px;
+  border-radius: 2px;
+  text-transform: lowercase;
+}
+
+/* ── Notifications ───────────────────────────────────────────── */
+.notif-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--bg-card); border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  cursor: pointer; transition: background .15s;
+}
+.notif-row.unread { border-left: 3px solid var(--red); }
+.notif-row:hover { background: var(--bg-surface); }
+.notif-dot-col { width: 12px; display: flex; justify-content: center; padding-top: 6px; }
+.notif-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+.notif-type-icon {
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; flex-shrink: 0; margin-top: 4px;
+}
+.notif-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.notif-text { font-size: 13px; font-family: var(--lora); line-height: 1.5; }
+.notif-actor { font-weight: bold; color: var(--text); }
+.notif-body { color: var(--muted); }
+.notif-comment { color: var(--dim); font-size: 12px; font-style: italic; font-family: var(--lora); }
+.notif-time { color: var(--tiny); font-size: 9px; font-family: var(--mono); letter-spacing: .5px; }
+.notif-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px 8px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--bg); z-index: 4;
+}
+.notif-header-title { color: var(--text); font-family: var(--mono); font-size: 10px; letter-spacing: 3px; }
+.notif-badge { color: var(--red); font-family: var(--mono); font-size: 10px; }
+.notif-mark-all { color: var(--dim); font-family: var(--mono); font-size: 8px; letter-spacing: 1.5px; background: none; border: none; cursor: pointer; }
+
+/* ── Stats ───────────────────────────────────────────────────── */
+.stats-section-title {
+  color: var(--tiny); font-family: var(--mono); font-size: 8.5px;
+  letter-spacing: 3px; padding: 16px 16px 8px;
+}
+.stats-card-row { display: flex; gap: 5px; padding: 0 16px 6px; }
+.stats-card {
+  flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+  padding: 14px 8px; text-align: center; display: flex; flex-direction: column; gap: 3px;
+}
+.stats-val { color: var(--red); font-size: 24px; font-weight: bold; font-family: var(--mono); }
+.stats-lbl { color: var(--tiny); font-size: 7px; font-family: var(--mono); letter-spacing: 1.5px; }
+.stats-bars-card {
+  margin: 0 16px 4px; background: var(--bg-card);
+  border: 1px solid var(--border); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.stats-bar-row { display: flex; align-items: center; gap: 10px; }
+.stats-bar-label { color: var(--muted); font-size: 11px; font-family: var(--mono); width: 64px; flex-shrink: 0; }
+.stats-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.stats-bar-fill { height: 6px; border-radius: 3px; transition: width .4s; }
+.stats-bar-count { font-size: 11px; font-family: var(--mono); width: 20px; text-align: right; }
+.stats-words-grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 4px; }
+.stats-word-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg-card); border: 1px solid rgba(232,72,48,.3);
+  padding: 7px 12px; border-radius: 2px;
+}
+.stats-word { color: var(--red); font-family: var(--mono); font-size: 12px; letter-spacing: 1px; }
+.stats-word-count { color: var(--tiny); font-family: var(--mono); font-size: 9px; }
+.stats-avg-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-card); border: 1px solid var(--border);
+  padding: 14px 16px; margin: 0 16px 4px;
+}
+.stats-avg-lbl { color: var(--tiny); font-family: var(--mono); font-size: 8.5px; letter-spacing: 2px; }
+.stats-avg-right { display: flex; align-items: center; gap: 10px; }
+.stats-avg-val { color: var(--gold); font-size: 22px; font-weight: bold; font-family: var(--mono); }
+.streak-card {
+  margin: 0 16px 4px; background: var(--bg-card); border: 1px solid var(--border);
+  padding: 20px 16px; text-align: center; display: flex; flex-direction: column; gap: 6px; align-items: center;
+}
+.streak-num { color: var(--red); font-size: 48px; font-weight: bold; font-family: var(--mono); line-height: 1; }
+.streak-lbl { color: var(--dim); font-size: 10px; font-family: var(--mono); letter-spacing: 2px; }
+.streak-dots { display: flex; gap: 8px; margin-top: 8px; }
+.streak-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); }
+.streak-dot.active { background: var(--red); }
+
+/* ══════════════════════════════════════════════════
+   ANIMATIONS & TRANSITIONS
+   ══════════════════════════════════════════════════ */
+
+/* ── Keyframes ─────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes pulseLike {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.5); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+@keyframes bounceIn {
+  0%   { opacity: 0; transform: scale(0.75); }
+  60%  { opacity: 1; transform: scale(1.08); }
+  80%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+@keyframes ripple {
+  from { opacity: .3; transform: scale(0); }
+  to   { opacity: 0;  transform: scale(3); }
+}
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes skeletonPulse {
+  0%, 100% { opacity: .5; }
+  50%       { opacity: 1; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes barGrow {
+  from { width: 0 !important; }
+}
+
+/* ── Screen transitions ────────────────────────── */
+.screen {
+  transition: opacity .18s ease;
+}
+.screen.active {
+  animation: screenIn .22s ease both;
+}
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Detail slides in from right */
+#screen-detail.active,
+#screen-notifications.active,
+#screen-stats.active {
+  animation: slideInRight .22s ease both;
+}
+
+/* ── Feed cards staggered entrance ─────────────── */
+.feed-card {
+  animation: fadeUp .3s ease both;
+}
+.feed-card:nth-child(1)  { animation-delay: .03s; }
+.feed-card:nth-child(2)  { animation-delay: .07s; }
+.feed-card:nth-child(3)  { animation-delay: .11s; }
+.feed-card:nth-child(4)  { animation-delay: .15s; }
+.feed-card:nth-child(5)  { animation-delay: .19s; }
+.feed-card:nth-child(n+6){ animation-delay: .22s; }
+
+/* ── Skeleton loaders ──────────────────────────── */
+.skeleton-wrap {
+  padding: 12px 0;
+}
+.skeleton-card {
+  background: var(--bg-card);
+  border-top: 3px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+}
+.skeleton-poster {
+  width: 52px;
+  height: 74px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+.skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+.skel {
+  border-radius: 3px;
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    var(--bg-surface) 50%,
+    var(--bg-card) 75%
+  );
+  background-size: 400px 100%;
+  animation: shimmer 1.6s ease-in-out infinite,
+             skeletonPulse 1.6s ease-in-out infinite;
+}
+.skel-sm  { height: 10px; width: 40%; }
+.skel-md  { height: 14px; width: 70%; }
+.skel-lg  { height: 14px; width: 90%; }
+.skel-xs  { height: 9px;  width: 30%; }
+.skel-row { display: flex; gap: 6px; }
+
+/* ── Like button animation ─────────────────────── */
+.action-btn.like-pop .action-icon {
+  display: inline-block;
+  animation: pulseLike .35s ease both;
+}
+
+/* ── Nav tap ripple ────────────────────────────── */
+.nav-btn {
+  position: relative;
+  overflow: hidden;
+}
+.nav-ripple {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--red);
+  margin: -20px;
+  pointer-events: none;
+  animation: ripple .5s ease-out both;
+}
+
+/* ── Empty state animations ────────────────────── */
+.empty-state .empty-emoji {
+  display: inline-block;
+  animation: emptyFloat 3s ease-in-out infinite;
+}
+.empty-state {
+  animation: fadeIn .4s ease both;
+}
+
+/* ── Stats bars animate in ─────────────────────── */
+.stats-bar-fill {
+  animation: barGrow .6s cubic-bezier(.4,0,.2,1) both;
+}
+
+/* ── Search results stagger ────────────────────── */
+.result-row {
+  animation: fadeUp .25s ease both;
+}
+.result-row:nth-child(1) { animation-delay: .02s; }
+.result-row:nth-child(2) { animation-delay: .05s; }
+.result-row:nth-child(3) { animation-delay: .08s; }
+.result-row:nth-child(4) { animation-delay: .11s; }
+.result-row:nth-child(n+5) { animation-delay: .14s; }
+
+/* ── Notification rows stagger ─────────────────── */
+.notif-row {
+  animation: fadeUp .25s ease both;
+}
+.notif-row:nth-child(1) { animation-delay: .04s; }
+.notif-row:nth-child(2) { animation-delay: .08s; }
+.notif-row:nth-child(3) { animation-delay: .12s; }
+.notif-row:nth-child(4) { animation-delay: .16s; }
+.notif-row:nth-child(n+5) { animation-delay: .20s; }
+
+/* ── Trending rows stagger ─────────────────────── */
+.trending-row {
+  animation: fadeUp .28s ease both;
+}
+.trending-row:nth-child(1) { animation-delay: .03s; }
+.trending-row:nth-child(2) { animation-delay: .07s; }
+.trending-row:nth-child(3) { animation-delay: .11s; }
+.trending-row:nth-child(4) { animation-delay: .15s; }
+.trending-row:nth-child(n+5) { animation-delay: .19s; }
+
+/* ── Person card stagger ───────────────────────── */
+.person-card {
+  animation: fadeUp .25s ease both;
+}
+.person-card:nth-child(1) { animation-delay: .04s; }
+.person-card:nth-child(2) { animation-delay: .08s; }
+.person-card:nth-child(3) { animation-delay: .12s; }
+.person-card:nth-child(n+4) { animation-delay: .16s; }
+
+/* ── Onboarding slide transition ───────────────── */
+#ob-slide {
+  animation: fadeIn .3s ease both;
+}
+
+/* ── Toast improved ────────────────────────────── */
+#toast {
+  transition: opacity .2s ease, transform .2s cubic-bezier(.34,1.56,.64,1);
+}
+#toast.show {
+  animation: bounceIn .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+/* ── Button press feedback ─────────────────────── */
+.filter-btn:active,
+.chip:active,
+.format-chip:active,
+.nav-btn:active {
+  transform: scale(0.95);
+  transition: transform .08s ease;
+}
+.result-log-btn:active,
+.follow-btn:active,
+#log-btn:active,
+#modal-submit:active {
+  transform: scale(0.96);
+  opacity: .85;
+  transition: transform .08s ease, opacity .08s ease;
+}
+
+/* ── Summary pills entrance ────────────────────── */
+.summary-pill {
+  animation: bounceIn .35s ease both;
+}
+.summary-pills .summary-pill:nth-child(1) { animation-delay: .05s; }
+.summary-pills .summary-pill:nth-child(2) { animation-delay: .12s; }
+.summary-pills .summary-pill:nth-child(3) { animation-delay: .19s; }
+
+/* ── Detail screen hero ────────────────────────── */
+.detail-hero {
+  animation: fadeIn .25s ease both;
+}
+.detail-section {
+  animation: fadeUp .3s ease both;
+}
+.detail-section:nth-child(2) { animation-delay: .06s; }
+.detail-section:nth-child(3) { animation-delay: .10s; }
+.detail-section:nth-child(4) { animation-delay: .14s; }
+.detail-section:nth-child(5) { animation-delay: .18s; }
+
+/* ── Respect reduced motion ─────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<div id="onboarding">
+  <div class="ob-strip" id="ob-strip-top"></div>
+  <div class="ob-logo-row"><div class="ob-logo"><span style="color:var(--red)">STREAMING</span><span style="color:var(--text)">BUDDIES</span></div></div>
+  <div class="ob-slide" id="ob-slide"></div>
+  <div class="ob-dots" id="ob-dots"></div>
+  <div class="ob-actions">
+    <button class="ob-primary" id="ob-next">NEXT →</button>
+    <button class="ob-skip" id="ob-skip">SKIP</button>
+  </div>
+  <div class="ob-strip" id="ob-strip-bot"></div>
+</div>
+
+<div id="auth-screen">
+  <div class="auth-strip" id="auth-strip-top"></div>
+  <div class="auth-logo-block">
+    <div class="auth-logo"><span style="color:var(--red)">STREAMING</span><span style="color:var(--text)">BUDDIES</span></div>
+    <div class="auth-tagline">◈ SOCIAL WATCHLOG ◈</div>
+  </div>
+  <div class="auth-toggle">
+    <button class="auth-tab active" id="tab-login" onclick="setAuthMode('login')">SIGN IN</button>
+    <button class="auth-tab" id="tab-signup" onclick="setAuthMode('signup')">CREATE ACCOUNT</button>
+  </div>
+  <div class="auth-form">
+    <div class="auth-label">EMAIL</div>
+    <input class="auth-input" id="auth-email" type="email" placeholder="you@example.com" autocomplete="email">
+    <div class="signup-only"><div class="auth-label">USERNAME</div>
+    <input class="auth-input" id="auth-username" placeholder="cinefan42" autocomplete="username"></div>
+    <div class="auth-label">PASSWORD</div>
+    <input class="auth-input" id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password">
+    <div class="auth-error" id="auth-error"></div>
+    <button class="auth-submit" id="auth-submit">▶ SIGN IN</button>
+  </div>
+  <div class="auth-demo" id="auth-demo-wrap">
+    <button class="auth-demo-btn" onclick="fillDemo()">USE DEMO ACCOUNT</button>
+  </div>
+  <div class="auth-strip"></div>
+</div>
+
+<div id="app">
+  <div id="header">
+    <div>
+      <div class="logo"><span style="color:var(--red)">STREAMING</span><span style="color:var(--text)">BUDDIES</span></div>
+      <div class="tagline">◈ SOCIAL WATCHLOG ◈</div>
+    </div>
+    <button id="log-btn" onclick="openModal()">+ LOG</button>
+  </div>
+
+  <div id="screens">
+    <!-- FEED -->
+    <div class="screen active" id="screen-feed">
+      <div class="filter-bar" id="feed-filters"></div>
+      <div id="feed-list"></div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="screen" id="screen-search">
+      <div class="search-bar">
+        <span class="search-icon">⌕</span>
+        <input id="search-input" placeholder="Search titles, genres, authors…" autocomplete="off">
+        <span class="search-spinner" id="search-spinner">↻</span>
+        <button class="search-clear" id="search-clear" onclick="clearSearch()" style="display:none">✕</button>
+      </div>
+      <div id="search-content"></div>
+    </div>
+
+    <!-- PEOPLE -->
+    <div class="screen" id="screen-people">
+      <div class="people-tabs">
+        <button class="people-tab active" id="ptab-friends" onclick="setPeopleTab('friends')">FRIENDS</button>
+        <button class="people-tab" id="ptab-discover" onclick="setPeopleTab('discover')">DISCOVER</button>
+      </div>
+      <div id="people-list"></div>
+    </div>
+
+    <!-- TRENDING -->
+    <div class="screen" id="screen-trending">
+      <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;padding-right:16px;">
+        <span>◎ THIS WEEK'S MOST WATCHED</span>
+        <span class="live-badge" id="live-badge" style="display:none">● LIVE</span>
+      </div>
+      <div class="filter-bar" id="trend-filters"></div>
+      <div id="trending-list"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="screen" id="screen-profile">
+      <div id="profile-content"></div>
+    </div>
+
+    <!-- DETAIL -->
+    <div class="screen" id="screen-detail">
+      <div id="detail-content"></div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="screen" id="screen-notifications">
+      <div id="notifications-content"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="screen" id="screen-stats">
+      <div id="stats-content"></div>
+    </div>
+  </div>
+
+  <nav id="nav">
+    <button class="nav-btn active" onclick="showScreen('feed')" id="nav-feed">
+      <span class="nav-icon">◎</span><span>FEED</span>
+    </button>
+    <button class="nav-btn" onclick="showScreen('search')" id="nav-search">
+      <span class="nav-icon">⌕</span><span>SEARCH</span>
+    </button>
+    <button class="nav-btn" onclick="showScreen('people')" id="nav-people">
+      <span class="nav-icon">◉</span><span>PEOPLE</span>
+    </button>
+    <button class="nav-btn" onclick="showScreen('trending')" id="nav-trending">
+      <span class="nav-icon">▲</span><span>TRENDING</span>
+    </button>
+    <button class="nav-btn" onclick="showScreen('profile')" id="nav-profile">
+      <span class="nav-icon">◈</span><span>PROFILE</span>
+    </button>
+  </nav>
+</div>
+
+<!-- Log Modal -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div id="modal-sheet">
+    <div class="modal-header">
+      <span class="modal-title">◈ LOG ENTRY</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-label">TITLE</div>
+      <input id="modal-title-input" placeholder="Title…" oninput="checkSubmit()">
+      <div class="modal-label">GENRE</div>
+      <input id="modal-genre" placeholder="e.g. Sci-Fi, Literary Fiction, True Crime…" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;font-size:14px;font-family:var(--lora);outline:none;width:100%;margin-bottom:14px;transition:border-color .2s" onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border)'">
+      <div class="modal-label">TYPE</div>
+      <div class="chip-row" id="type-chips"></div>
+      <div class="modal-label">STATUS</div>
+      <div class="chip-row" id="status-chips"></div>
+      <div class="modal-label">RATING</div>
+      <div class="stars-input" id="star-input"></div>
+      <div class="modal-label">REVIEW</div>
+      <textarea id="modal-review" rows="4" placeholder="Write a short review…"></textarea>
+      <div class="modal-label" style="margin-top:8px">YOUR 3 WORD SUMMARY</div>
+      <div class="word-summary-row">
+        <input class="word-input" id="word-1" maxlength="20" placeholder="word one" oninput="enforceOneWord(this)">
+        <input class="word-input" id="word-2" maxlength="20" placeholder="word two" oninput="enforceOneWord(this)">
+        <input class="word-input" id="word-3" maxlength="20" placeholder="word three" oninput="enforceOneWord(this)">
+      </div>
+      <div class="word-counter" id="word-counter">0 / 3 words</div>
+      <button id="modal-submit" onclick="submitLog()" disabled>◈ POST TO FEED</button>
+      <div style="height:10px"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────
+const S = {
+  user: null,
+  authMode: 'login',
+  currentScreen: 'feed',
+  prevScreen: 'feed',
+  feedFilter: 'all',
+  trendFilter: 'all',
+  peopleTab: 'friends',
+  liked: new Set(),
+  feed: [],
+  myEntries: [],
+  people: [],
+  trending: [],
+  modalType: 'movie',
+  modalStatus: 'finished',
+  modalRating: 4,
+  searchQuery: '',
+  searchResults: [],
+  searchTimer: null,
+  obPage: 0,
+  onboardingDone: false,
+};
+
+const MOCK_USERS = [
+  { id:'u1', email:'demo@streamingbuddies.app', password:'demo123', username:'cinefan', displayName:'Demo User', avatar:'D', avatarColor:'#E84830', bio:'I watch too many movies.' },
+  { id:'u2', email:'elena@example.com', password:'pass123', username:'elenam', displayName:'Elena M.', avatar:'E', avatarColor:'#E84830', bio:'Sci-fi obsessed.' },
+];
+
+const FEED_DATA = [
+  { id:'1', user:'Elena M.', avatar:'E', avatarColor:'#E84830', type:'movie', title:'Dune: Part Two', year:2024, status:'finished', rating:5, review:'Absolutely breathtaking. Villeneuve has done it again. The sandworm scenes alone are worth the price of admission.', genre:'Sci-Fi', poster:'🏜️', time:'2h ago', likes:14, wordSummary:['epic','stunning','overwhelming'] },
+  { id:'2', user:'Marco V.', avatar:'M', avatarColor:'#3CC68A', type:'tv', title:'Shōgun', year:2024, status:'watching', rating:4, review:'Stunning cinematography and deeply layered characters. Every episode feels like a film.', genre:'Drama', poster:'⛩️', time:'5h ago', likes:9 },
+  { id:'5', user:'Yuki T.', avatar:'Y', avatarColor:'#4A90D9', type:'movie', title:'Past Lives', year:2023, status:'finished', rating:5, review:'I cried twice. This movie lives inside you long after it ends.', genre:'Romance', poster:'🌸', time:'2 days ago', likes:31, wordSummary:['quiet','devastating','beautiful'] },
+  { id:'6', user:'Rosa B.', avatar:'R', avatarColor:'#C8A96E', type:'tv', title:'The Bear', year:2024, status:'want to watch', rating:null, review:'Everyone keeps telling me to watch this. Finally adding it to my list.', genre:'Drama', poster:'🍳', time:'3 days ago', likes:4 },
+];
+
+const TRENDING_DATA = [
+  { id:'t1', title:'Alien: Romulus', type:'movie', poster:'👾', rating:4.1, watchers:284 },
+  { id:'t2', title:'The Rings of Power S2', type:'tv', poster:'💍', rating:3.8, watchers:512 },
+  { id:'t5', title:'Longlegs', type:'movie', poster:'🎬', rating:3.5, watchers:391 },
+  { id:'t6', title:'Presumed Innocent', type:'tv', poster:'⚖️', rating:4.2, watchers:267 },
+];
+
+const PEOPLE_DATA = [
+  { id:'u2', username:'elenam', displayName:'Elena M.', avatar:'E', avatarColor:'#E84830', bio:'Sci-fi obsessed.', followers:142, following:89, entriesCount:47, lastEntry:{ title:'Dune: Part Two', type:'movie', rating:5, poster:'🏜️' }, isFollowing:true },
+  { id:'u3', username:'marcov', displayName:'Marco V.', avatar:'M', avatarColor:'#3CC68A', bio:'Drama & documentaries.', followers:98, following:61, entriesCount:32, lastEntry:{ title:'Shōgun', type:'tv', rating:4, poster:'⛩️' }, isFollowing:true },
+  { id:'u4', username:'pias', displayName:'Pia S.', avatar:'P', avatarColor:'#7B6EF5', bio:'Slow cinema & literary fiction.', followers:210, following:88, entriesCount:91, lastEntry:{ title:'Dune: Part Two', type:'movie', rating:5, poster:'🏜️' }, isFollowing:false },
+  { id:'u5', username:'yukitt', displayName:'Yuki T.', avatar:'Y', avatarColor:'#4A90D9', bio:'A24 fan forever.', followers:73, following:55, entriesCount:28, lastEntry:{ title:'Past Lives', type:'movie', rating:5, poster:'🌸' }, isFollowing:true },
+  { id:'u6', username:'rosab', displayName:'Rosa B.', avatar:'R', avatarColor:'#C8A96E', bio:'Documentary & world cinema.', followers:156, following:203, entriesCount:19, lastEntry:{ title:'The Bear', type:'tv', rating:null, poster:'🍳' }, isFollowing:true },
+  { id:'u7', username:'devk', displayName:'Dev K.', avatar:'D', avatarColor:'#E84830', bio:'Auteur cinema & essays.', followers:188, following:77, entriesCount:63, lastEntry:{ title:'Shōgun', type:'tv', rating:5, poster:'⛩️' }, isFollowing:false },
+];
+
+const TYPE_LABELS = { movie:'Film', tv:'Series' };
+const TYPE_COLORS = { movie:'#E84830', tv:'#4A90D9' };
+const STATUS_LABELS = { finished:'Watched', watching:'Watching', 'want to watch':'Want to Watch' };
+const STATUS_COLORS = { finished:'#3CC68A', watching:'#E84830', 'want to watch':'#4A5268' };
+
+// Format-aware status helpers
+function getStatusOptions(type) {
+  return [
+    { value: 'finished',      label: 'Watched',       icon: '✓' },
+    { value: 'watching',      label: 'Watching',      icon: '▶' },
+    { value: 'want to watch', label: 'Want to Watch', icon: '+' },
+  ];
+}
+
+function getStatusLabel(status) {
+  const l = { finished:'Watched', watching:'Watching', 'want to watch':'Want to Watch' };
+  return l[status] || status;
+}
+
+function getStatusIcon(status) {
+  if (status === 'finished') return '✓';
+  if (status === 'watching') return '▶';
+  return '+';
+}
+const OB_SLIDES = [
+  { emoji:'🎬', title:'Track everything\nyou watch', body:'Every film and series you watch — rated, reviewed, and remembered in one place.', color:'#E84830' },
+  { emoji:'◉', title:'See what your\nfriends are into', body:'A real-time feed of what your circle is watching. Discover things you never would have found alone.', color:'#3CC68A' },
+  { emoji:'★', title:'Rate, review\nand remember', body:'One to five stars, a short review, and a watch status. Simple enough to actually use every day.', color:'#C8A96E' },
+];
+
+// ── Storage ────────────────────────────────────────────────────
+const store = {
+  get: k => { try { return JSON.parse(localStorage.getItem('sb:'+k)); } catch { return null; } },
+  set: (k,v) => { try { localStorage.setItem('sb:'+k, JSON.stringify(v)); } catch {} },
+};
+
+// ── Boot ───────────────────────────────────────────────────────
+function boot() {
+  // Restore state
+  S.liked = new Set(store.get('liked') || []);
+  S.feed = store.get('feed') || FEED_DATA;
+  S.myEntries = store.get('myEntries') || [];
+  S.people = store.get('people') || PEOPLE_DATA;
+  S.trending = TRENDING_DATA;
+  S.user = store.get('user');
+  S.onboardingDone = store.get('onboardingDone') || false;
+
+  // Build film strips
+  buildStrips();
+  buildModal();
+
+  if (!S.onboardingDone) {
+    showOnboarding();
+  } else if (!S.user) {
+    showAuth();
+  } else {
+    showApp();
+  }
+}
+
+function buildStrips() {
+  ['ob-strip-top','ob-strip-bot','auth-strip-top'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = Array(14).fill('<div class="ob-hole"></div>').join('');
+  });
+}
+
+// ── Onboarding ─────────────────────────────────────────────────
+function showOnboarding() {
+  document.getElementById('onboarding').classList.add('visible');
+  renderObSlide();
+}
+
+function renderObSlide() {
+  const s = OB_SLIDES[S.obPage];
+  const isLast = S.obPage === OB_SLIDES.length - 1;
+  const slide = document.getElementById('ob-slide');
+  // Re-trigger animation
+  slide.style.animation = 'none';
+  void slide.offsetWidth;
+  slide.style.animation = '';
+
+  slide.innerHTML = `
+    <div class="ob-emoji-wrap" style="border-color:${s.color}44">${s.emoji}</div>
+    <div class="ob-title">${s.title.replace('\n','<br>')}</div>
+    <div class="ob-body">${s.body}</div>
+  `;
+
+  document.getElementById('ob-dots').innerHTML = OB_SLIDES.map((_, i) =>
+    `<div class="ob-dot ${i===S.obPage?'active':''}" onclick="goObPage(${i})"></div>`
+  ).join('');
+
+  document.getElementById('ob-next').textContent = isLast ? '▶ GET STARTED' : 'NEXT →';
+  document.getElementById('ob-skip').style.display = isLast ? 'none' : 'block';
+}
+
+function goObPage(n) { S.obPage = n; renderObSlide(); }
+
+document.getElementById('ob-next').onclick = () => {
+  if (S.obPage < OB_SLIDES.length - 1) { S.obPage++; renderObSlide(); }
+  else finishOnboarding();
+};
+document.getElementById('ob-skip').onclick = finishOnboarding;
+
+function finishOnboarding() {
+  store.set('onboardingDone', true);
+  document.getElementById('onboarding').classList.remove('visible');
+  if (!S.user) showAuth(); else showApp();
+}
+
+// ── Auth ───────────────────────────────────────────────────────
+function showAuth() {
+  document.getElementById('auth-screen').classList.add('visible');
+  ['auth-strip-top'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = Array(14).fill('<div class="auth-hole"></div>').join('');
+  });
+}
+
+function setAuthMode(mode) {
+  S.authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+  document.querySelectorAll('.signup-only').forEach(el => el.style.display = mode === 'signup' ? 'block' : 'none');
+  document.getElementById('auth-submit').textContent = mode === 'login' ? '▶ SIGN IN' : '◈ CREATE ACCOUNT';
+  document.getElementById('auth-demo-wrap').style.display = mode === 'login' ? 'block' : 'none';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function fillDemo() {
+  document.getElementById('auth-email').value = 'demo@streamingbuddies.app';
+  document.getElementById('auth-password').value = 'demo123';
+  document.getElementById('auth-error').textContent = '';
+}
+
+document.getElementById('auth-submit').onclick = () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const username = document.getElementById('auth-username')?.value?.trim();
+  document.getElementById('auth-error').textContent = '';
+
+  if (!email || !password) { document.getElementById('auth-error').textContent = 'Please fill in all fields'; return; }
+
+  if (S.authMode === 'login') {
+    const found = MOCK_USERS.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    if (!found) { document.getElementById('auth-error').textContent = 'Invalid email or password'; return; }
+    const { password: _, ...safe } = found;
+    S.user = safe;
+  } else {
+    if (!username) { document.getElementById('auth-error').textContent = 'Please choose a username'; return; }
+    S.user = { id:'u'+Date.now(), email, username: username.toLowerCase(), displayName: username, avatar: username[0].toUpperCase(), avatarColor:'#E84830', bio:'' };
+  }
+
+  store.set('user', S.user);
+  document.getElementById('auth-screen').classList.remove('visible');
+  showApp();
+};
+
+// ── App ────────────────────────────────────────────────────────
+function showApp() {
+  renderFeed();
+  renderSearch();
+  renderTrending();
+  renderPeople();
+  renderProfile();
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+function showScreen(name, triggerEl) {
+  if (name === S.currentScreen && name !== 'detail') return;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  // Force re-animation by removing then adding active
+  const screen = document.getElementById('screen-' + name);
+  if (screen) {
+    screen.classList.remove('active');
+    void screen.offsetWidth; // reflow trigger
+    screen.classList.add('active');
+  }
+  const nb = document.getElementById('nav-' + name);
+  if (nb) {
+    nb.classList.add('active');
+    // Ripple
+    const r = document.createElement('span');
+    r.className = 'nav-ripple';
+    nb.appendChild(r);
+    setTimeout(() => r.remove(), 520);
+  }
+  if (name !== 'detail' && name !== 'notifications' && name !== 'stats') S.prevScreen = S.currentScreen;
+  S.currentScreen = name;
+  if (name === 'notifications') renderNotifications();
+  if (name === 'stats') {
+    renderStats();
+    // Re-trigger bar animations after render
+    setTimeout(() => {
+      document.querySelectorAll('.stats-bar-fill').forEach(b => {
+        b.style.animation = 'none';
+        void b.offsetWidth;
+        b.style.animation = '';
+      });
+    }, 50);
+  }
+}
+
+function goBack() {
+  showScreen(S.prevScreen || 'feed');
+}
+
+// ── Feed ───────────────────────────────────────────────────────
+function makeSkeleton() {
+  return `<div class="skeleton-card">
+    <div class="skeleton-poster skel"></div>
+    <div class="skeleton-lines">
+      <div class="skel-row"><div class="skel skel-xs"></div><div class="skel skel-xs" style="width:60px"></div></div>
+      <div class="skel skel-md"></div>
+      <div class="skel-row"><div class="skel skel-xs"></div><div class="skel skel-xs"></div></div>
+      <div class="skel skel-sm"></div>
+      <div class="skel skel-lg"></div>
+      <div class="skel skel-md" style="width:55%"></div>
+    </div>
+  </div>`;
+}
+
+function renderFeed(skipSkeleton) {
+  const filters = [['all','All'],['movie','Films'],['tv','Series']];
+  document.getElementById('feed-filters').innerHTML = filters.map(([k,l]) =>
+    `<button class="filter-btn ${k===S.feedFilter?'active':''}" onclick="setFeedFilter('${k}')">${l}</button>`
+  ).join('');
+
+  const items = S.feedFilter === 'all' ? S.feed : S.feed.filter(i => i.type === S.feedFilter);
+  const list = document.getElementById('feed-list');
+
+  if (!items.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-emoji" style="font-size:52px">🎬</div>
+      <div class="empty-title">Your feed is empty</div>
+      <div class="empty-hint">${S.feedFilter !== 'all' ? 'Nothing in this category yet' : 'Follow friends or log something'}</div>
+      ${S.feedFilter === 'all' ? '<button class="empty-btn" onclick="openModal()">+ LOG SOMETHING</button>' : ''}
+    </div>`;
+    return;
+  }
+
+  // Show skeletons immediately, then swap in real cards
+  if (!skipSkeleton) {
+    list.innerHTML = `<div class="skeleton-wrap">${Array(Math.min(items.length, 4)).fill(makeSkeleton()).join('')}</div>`;
+    setTimeout(() => renderFeed(true), 280);
+    return;
+  }
+
+  list.innerHTML = items.map(item => renderCard(item)).join('') + '<div class="pb-safe"></div>';
+}
+
+function setFeedFilter(f) {
+  S.feedFilter = f;
+  renderFeed(); // skeletons then cards
+}
+
+function renderCard(item) {
+  const liked = S.liked.has(item.id);
+  const typeColor = TYPE_COLORS[item.type] || '#888';
+  const statusColor = STATUS_COLORS[item.status] || '#999';
+
+  return `
+  <div class="feed-card" id="card-${item.id}">
+    <div class="film-strip">${Array(10).fill('<div class="film-hole"></div>').join('')}</div>
+    <div class="card-body" onclick="openDetail('${item.id}')">
+      <div class="poster-box">
+        <span style="font-size:26px">${item.poster}</span>
+        <div class="poster-bar"></div>
+      </div>
+      <div class="card-content">
+        <div class="card-user-row">
+          <div class="avatar" style="width:26px;height:26px;font-size:11px;background:${item.avatarColor}22;border:2px solid ${item.avatarColor}66;color:${item.avatarColor}">${item.avatar}</div>
+          <span class="card-username">${item.user}</span>
+          <span class="card-time">${item.time}</span>
+        </div>
+        <div class="card-title-row">
+          <span class="card-title">${item.title}</span>
+          <span class="card-year">${item.year}</span>
+        </div>
+        <div class="badges">
+          <span class="badge" style="color:${typeColor};border-color:${typeColor}44">${TYPE_LABELS[item.type]}</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;letter-spacing:1px;color:${statusColor}">
+            <span style="width:14px;height:14px;border-radius:50%;background:${statusColor}22;border:1px solid ${statusColor};display:inline-flex;align-items:center;justify-content:center;font-size:7px">${getStatusIcon(item.status)}</span>
+            ${getStatusLabel(item.status)}
+          </span>
+        </div>
+        <div class="stars">${renderStars(item.rating, 12)}</div>
+        ${item.review ? `<div class="card-review" id="review-${item.id}">"${item.review}"</div>
+        ${item.review.length > 80 ? `<button class="expand-btn" onclick="event.stopPropagation();toggleReview('${item.id}')">▼ MORE</button>` : ''}` : ''}
+        ${item.wordSummary?.length ? `<div class="summary-pills">${item.wordSummary.map(w => `<span class="summary-pill">${w}</span>`).join('')}</div>` : ''}
+      </div>
+    </div>
+    <div class="card-actions">
+      <button class="action-btn ${liked?'liked':''}" id="like-${item.id}" onclick="toggleLike('${item.id}')">
+        <span class="action-icon">${liked?'♥':'♡'}</span>
+        <span>${item.likes + (liked?1:0)}</span>
+      </button>
+      <button class="action-btn" onclick="showToast('Reply coming soon')"><span class="action-icon">◻</span> REPLY</button>
+      <button class="action-btn" onclick="showToast('Saved!')"><span class="action-icon">+</span> SAVE</button>
+    </div>
+    <div class="film-strip">${Array(10).fill('<div class="film-hole"></div>').join('')}</div>
+  </div>`;
+}
+
+function renderStars(rating, size=13) {
+  if (!rating) return `<span style="color:#888;font-size:${size-2}px;font-family:var(--mono)">Not rated</span>`;
+  return [1,2,3,4,5].map(s =>
+    `<span class="star" style="font-size:${size}px;color:${s<=rating?'#C8A96E':'#ddd'}"">★</span>`
+  ).join('');
+}
+
+function toggleReview(id) {
+  const el = document.getElementById('review-'+id);
+  const btn = el?.nextElementSibling;
+  if (!el || !btn) return;
+  el.classList.toggle('expanded');
+  btn.textContent = el.classList.contains('expanded') ? '▲ LESS' : '▼ MORE';
+}
+
+function toggleLike(id) {
+  if (S.liked.has(id)) S.liked.delete(id); else S.liked.add(id);
+  store.set('liked', [...S.liked]);
+  const item = S.feed.find(i => i.id === id);
+  if (!item) return;
+  const btn = document.getElementById('like-'+id);
+  if (btn) {
+    const liked = S.liked.has(id);
+    btn.classList.toggle('liked', liked);
+    btn.innerHTML = `<span class="action-icon">${liked?'♥':'♡'}</span><span>${item.likes+(liked?1:0)}</span>`;
+    // Pulse animation on like
+    if (liked) {
+      btn.classList.add('like-pop');
+      setTimeout(() => btn.classList.remove('like-pop'), 400);
+    }
+  }
+}
+
+// ── Detail ─────────────────────────────────────────────────────
+function openDetail(id) {
+  const item = S.feed.find(i => i.id === id) || S.trending.find(i => i.id === id);
+  if (!item) return;
+  const liked = S.liked.has(item.id);
+  const typeColor = TYPE_COLORS[item.type] || '#E84830';
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-nav">
+      <button class="detail-back" onclick="goBack()">
+        <span class="detail-back-arrow">←</span>
+        <span class="detail-back-label">BACK</span>
+      </button>
+      <button class="detail-share" onclick="shareItem('${encodeURIComponent(item.title)}')">↗ SHARE</button>
+    </div>
+    <div class="detail-hero" style="border-bottom:3px solid ${typeColor}88">
+      <div class="detail-poster">
+        <span style="font-size:38px">${item.poster}</span>
+        <div class="detail-poster-bar" style="background:${typeColor}"></div>
+      </div>
+      <div class="detail-info">
+        <div class="detail-title">${item.title}</div>
+        <div class="detail-year">${item.year}</div>
+        <div class="badges" style="margin-top:4px">
+          <span class="badge" style="color:${typeColor};border-color:${typeColor}44">${TYPE_LABELS[item.type]||item.type}</span>
+        </div>
+        ${item.genre ? `<div class="detail-genre">${item.genre}</div>` : ''}
+      </div>
+    </div>
+
+    <div class="film-strip">${Array(10).fill('<div class="film-hole"></div>').join('')}</div>
+
+    <div class="detail-section" style="display:flex;align-items:center;gap:12px">
+      ${renderStars(item.rating, 26)}
+      ${item.rating ? `<span style="color:var(--muted);font-family:var(--mono);font-size:14px">${item.rating}/5</span>` : ''}
+    </div>
+
+    <div class="detail-section">
+      <span style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;letter-spacing:1px;color:${STATUS_COLORS[item.status]||'#999'}">
+        <span style="width:16px;height:16px;border-radius:50%;background:${(STATUS_COLORS[item.status]||'#999')}22;border:1px solid ${STATUS_COLORS[item.status]||'#999'};display:inline-flex;align-items:center;justify-content:center;font-size:8px">${getStatusIcon(item.status)}</span>
+        ${getStatusLabel(item.status)}
+      </span>
+    </div>
+
+    ${item.review ? `<div class="detail-section">
+      <div class="detail-section-label">REVIEW</div>
+      <div class="detail-review-text">"${item.review}"</div>
+    </div>` : ''}
+
+    ${item.wordSummary?.length ? `<div class="detail-section">
+      <div class="detail-section-label">3 WORD SUMMARY</div>
+      <div class="summary-pills" style="padding-top:2px">${item.wordSummary.map(w => `<span class="summary-pill" style="font-size:11px;padding:4px 12px">${w}</span>`).join('')}</div>
+    </div>` : ''}
+
+    ${item.user ? `<div class="detail-section">
+      <div class="detail-section-label">LOGGED BY</div>
+      <div class="detail-logged-by">
+        <div class="avatar" style="width:40px;height:40px;font-size:16px;background:${item.avatarColor||'#E84830'}22;border:2px solid ${item.avatarColor||'#E84830'}66;color:${item.avatarColor||'#E84830'}">${item.avatar||'?'}</div>
+        <div>
+          <div class="detail-logged-name">${item.user}</div>
+          <div class="detail-logged-time">${item.time||''}</div>
+        </div>
+      </div>
+    </div>` : ''}
+
+    <div class="film-strip">${Array(10).fill('<div class="film-hole"></div>').join('')}</div>
+
+    <div class="detail-actions">
+      <button class="detail-action ${liked?'liked':''}" id="detail-like" onclick="detailLike('${item.id}')">
+        <span class="detail-action-icon">${liked?'♥':'♡'}</span>
+        <span>${item.likes+(liked?1:0)} LIKES</span>
+      </button>
+      <button class="detail-action" onclick="showToast('Reply coming soon')">
+        <span class="detail-action-icon">◻</span> COMMENT
+      </button>
+      <button class="detail-action" onclick="showToast('Saved!')">
+        <span class="detail-action-icon">+</span> SAVE
+      </button>
+    </div>
+    <div class="pb-safe"></div>
+  `;
+
+  showScreen('detail');
+}
+
+function detailLike(id) {
+  toggleLike(id);
+  const item = S.feed.find(i => i.id === id);
+  if (!item) return;
+  const liked = S.liked.has(id);
+  const btn = document.getElementById('detail-like');
+  if (btn) {
+    btn.classList.toggle('liked', liked);
+    btn.innerHTML = `<span class="detail-action-icon">${liked?'♥':'♡'}</span><span>${item.likes+(liked?1:0)} LIKES</span>`;
+  }
+}
+
+function shareItem(encodedTitle) {
+  const title = decodeURIComponent(encodedTitle);
+  if (navigator.share) {
+    navigator.share({ title: 'StreamingBuddies', text: `Check out "${title}" on StreamingBuddies` });
+  } else {
+    navigator.clipboard?.writeText(`Check out "${title}" on StreamingBuddies`);
+    showToast('Link copied!');
+  }
+}
+
+// ── Search ─────────────────────────────────────────────────────
+const SEARCH_CORPUS = [
+  ...FEED_DATA.map(i => ({ ...i, source:'friends' })),
+  ...TRENDING_DATA.map(i => ({ ...i, source:'trending', status:'watching', review:null, user:null })),
+];
+
+function renderSearch() {
+  document.getElementById('search-content').innerHTML = renderBrowse();
+}
+
+function renderBrowse() {
+  return `
+  <div class="recent-list">
+    <div class="recent-label">RECENT SEARCHES</div>
+    ${['Dune','Shōgun','The Bear','Severance','Succession'].map(s =>
+      `<div class="recent-item" onclick="doSearch('${s}')">
+        <span class="recent-icon">↺</span>
+        <span class="recent-text">${s}</span>
+      </div>`
+    ).join('')}
+  </div>
+  <div class="browse-grid">
+    ${[['movie','🎬','Films','#E84830'],['tv','📺','Series','#3CC68A'],['book','📖','Books','#7B6EF5'],['podcast','🎙️','Podcasts','#4A90D9']].map(([type,emoji,label,color]) =>
+      `<div class="browse-tile" style="border-color:${color}44" onclick="doSearch('${type}')">
+        <span class="browse-emoji">${emoji}</span>
+        <span class="browse-label" style="color:${color}">${label}</span>
+      </div>`
+    ).join('')}
+  </div>`;
+}
+
+let searchTimer = null;
+document.getElementById('search-input').addEventListener('input', e => {
+  const q = e.target.value.trim();
+  document.getElementById('search-clear').style.display = q ? 'block' : 'none';
+  clearTimeout(searchTimer);
+  if (!q) { document.getElementById('search-content').innerHTML = renderBrowse(); return; }
+  document.getElementById('search-spinner').style.display = 'inline';
+  searchTimer = setTimeout(() => { runSearch(q); }, 350);
+});
+
+function doSearch(q) {
+  document.getElementById('search-input').value = q;
+  document.getElementById('search-clear').style.display = 'block';
+  runSearch(q);
+  showScreen('search');
+}
+
+function runSearch(q) {
+  document.getElementById('search-spinner').style.display = 'none';
+  const lower = q.toLowerCase();
+  const results = SEARCH_CORPUS.filter(i =>
+    i.title.toLowerCase().includes(lower) ||
+    (i.genre && i.genre.toLowerCase().includes(lower)) ||
+    (i.user && i.user.toLowerCase().includes(lower)) ||
+    (i.type && i.type.includes(lower))
+  );
+
+  if (!results.length) {
+    document.getElementById('search-content').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-emoji" style="font-size:48px">🔍</div>
+        <div class="empty-title" style="font-size:16px">Nothing found for "${q}"</div>
+        <div class="empty-hint" style="font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--tiny);margin-top:4px">Not in the catalogue yet</div>
+        <button class="empty-btn" onclick="openModal('${q}')">+ LOG "${q}"</button>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('search-content').innerHTML = results.map(item => `
+    <div class="result-row">
+      <div class="result-img-fallback"><span style="font-size:22px">${item.poster}</span></div>
+      <div class="result-info">
+        <div class="result-title">${item.title}</div>
+        <div class="result-meta">
+          <span class="badge" style="color:${TYPE_COLORS[item.type]};border-color:${TYPE_COLORS[item.type]}44">${TYPE_LABELS[item.type]}</span>
+          ${item.year?`<span style="color:var(--dim);font-size:10px;font-family:var(--mono)">${item.year}</span>`:''}
+          ${renderStars(item.rating, 10)}
+        </div>
+        ${item.user?`<span class="result-sub">Logged by ${item.user}</span>`:''}
+      </div>
+      <button class="result-log-btn" onclick="openModal('${item.title.replace(/'/g,"\\'")}')">+ LOG</button>
+    </div>
+  `).join('') + '<div class="pb-safe"></div>';
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  document.getElementById('search-content').innerHTML = renderBrowse();
+}
+
+// ── Trending ───────────────────────────────────────────────────
+function renderTrending() {
+  const filters = [['all','ALL'],['movie','FILMS'],['tv','SERIES']];
+  document.getElementById('trend-filters').innerHTML = filters.map(([k,l]) =>
+    `<button class="filter-btn ${k===S.trendFilter?'active':''}" onclick="setTrendFilter('${k}')">${l}</button>`
+  ).join('');
+
+  const items = S.trendFilter === 'all' ? S.trending : S.trending.filter(i => i.type === S.trendFilter);
+  // Skeleton then render
+  const tl = document.getElementById('trending-list');
+  if (tl) tl.innerHTML = `<div class="skeleton-wrap">${Array(4).fill(`
+    <div style="display:flex;align-items:center;gap:11px;background:var(--bg-card);border-bottom:1px solid var(--border);padding:12px 14px;margin-bottom:2px">
+      <div class="skel" style="width:22px;height:14px;flex-shrink:0"></div>
+      <div class="skel" style="width:40px;height:56px;flex-shrink:0"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:7px">
+        <div class="skel skel-lg"></div>
+        <div class="skel-row"><div class="skel skel-xs"></div><div class="skel skel-xs"></div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div class="skel" style="width:36px;height:18px"></div>
+        <div class="skel" style="width:50px;height:9px"></div>
+      </div>
+    </div>`).join('')}</div>`;
+  setTimeout(() => {
+  document.getElementById('trending-list').innerHTML = items.map((item, i) => `
+    <div class="trending-row" onclick="openDetail('${item.id}')">
+      <span class="trend-rank">#${i+1}</span>
+      <div class="trend-poster"><span style="font-size:26px">${item.poster}</span></div>
+      <div class="trend-info">
+        <div class="trend-title">${item.title}</div>
+        <div class="trend-meta">
+          <span class="badge" style="color:${TYPE_COLORS[item.type]};border-color:${TYPE_COLORS[item.type]}44">${TYPE_LABELS[item.type]}</span>
+          ${renderStars(Math.round(item.rating), 10)}
+          <span class="trend-rating">${item.rating}/5</span>
+        </div>
+      </div>
+      <div class="watcher-box">
+        <div class="watcher-count">${item.watchers}</div>
+        <div class="watcher-label">WATCHING</div>
+      </div>
+    </div>
+  `).join('') + '<div class="pb-safe"></div>';
+  }, 320);
+}
+
+function setTrendFilter(f) { S.trendFilter = f; renderTrending(); }
+
+// ── People ─────────────────────────────────────────────────────
+function renderPeople() {
+  const list = S.trendFilter === 'friends'
+    ? S.people.filter(p => p.isFollowing)
+    : S.people.filter(p => !p.isFollowing);
+  const tab = S.peopleTab;
+  const shown = tab === 'friends' ? S.people.filter(p => p.isFollowing) : S.people.filter(p => !p.isFollowing);
+
+  document.getElementById('people-list').innerHTML = shown.map(p => `
+    <div class="person-card">
+      <div class="avatar" style="width:46px;height:46px;flex-shrink:0;font-size:18px;background:${p.avatarColor}22;border:2px solid ${p.avatarColor}66;color:${p.avatarColor}">${p.avatar}</div>
+      <div class="person-info">
+        <div class="person-name-row">
+          <span class="person-name">${p.displayName}</span>
+          <span class="person-username">@${p.username}</span>
+        </div>
+        ${p.bio ? `<div class="person-bio">${p.bio}</div>` : ''}
+        <div class="person-stats">
+          <span class="person-stat"><b>${p.entriesCount}</b> logged</span>
+          <span style="color:var(--border)">·</span>
+          <span class="person-stat"><b>${p.followers}</b> followers</span>
+        </div>
+        ${p.lastEntry ? `<div class="person-last">
+          <span class="person-last-emoji">${p.lastEntry.poster}</span>
+          <span class="person-last-title">${p.lastEntry.title}</span>
+          ${renderStars(p.lastEntry.rating, 9)}
+        </div>` : ''}
+      </div>
+      <button class="follow-btn ${p.isFollowing?'following':''}" onclick="toggleFollow('${p.id}')">
+        ${p.isFollowing?'FOLLOWING':'+ FOLLOW'}
+      </button>
+    </div>
+  `).join('') + (shown.length ? '<div class="pb-safe"></div>' : `<div class="empty-state">
+  <div class="empty-emoji" style="font-size:48px">${tab==='friends'?'👥':'🌐'}</div>
+  <div class="empty-title" style="font-size:15px">${tab==='friends'?'Not following anyone yet':'No suggestions right now'}</div>
+  <div class="empty-hint" style="font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--tiny);margin-top:4px">${tab==='friends'?'Discover people in the other tab':'Check back later'}</div>
+</div>`);
+}
+
+function setPeopleTab(tab) {
+  S.peopleTab = tab;
+  document.getElementById('ptab-friends').classList.toggle('active', tab==='friends');
+  document.getElementById('ptab-discover').classList.toggle('active', tab==='discover');
+  // Brief fade reset so cards re-animate
+  const pl = document.getElementById('people-list');
+  if (pl) { pl.style.opacity = '0'; setTimeout(() => { renderPeople(); pl.style.opacity = '1'; }, 80); }
+  else renderPeople();
+}
+
+function toggleFollow(id) {
+  const p = S.people.find(p => p.id === id);
+  if (!p) return;
+  p.isFollowing = !p.isFollowing;
+  store.set('people', S.people);
+  showToast(p.isFollowing ? `Following ${p.displayName}` : `Unfollowed ${p.displayName}`);
+  renderPeople();
+}
+
+// ── Profile ────────────────────────────────────────────────────
+function renderProfile() {
+  const u = S.user || {};
+  const entries = S.myEntries;
+  const watched = entries.filter(e => e.status==='finished').length;
+  const watching = entries.filter(e => e.status==='watching').length;
+  const wantTo = entries.filter(e => e.status==='want to watch').length;
+  const initial = (u.displayName?.[0] || 'Y').toUpperCase();
+
+  document.getElementById('profile-content').innerHTML = `
+    <div class="profile-hero">
+      <div class="avatar" style="width:72px;height:72px;font-size:28px;background:${u.avatarColor||'#E84830'}22;border:2px solid ${u.avatarColor||'#E84830'}66;color:${u.avatarColor||'#E84830'}">${initial}</div>
+      <div class="profile-name">${u.displayName || 'You'}</div>
+      ${u.username ? `<div class="profile-handle">@${u.username}</div>` : ''}
+      ${u.bio ? `<div class="profile-bio">${u.bio}</div>` : '<div style="color:var(--tiny);font-family:var(--mono);font-size:9px;letter-spacing:3px">◈ CINEPHILE ◈</div>'}
+    </div>
+
+    <div class="stats-row">
+      ${[['WATCHED',watched],['WATCHING',watching],['WANT TO SEE',wantTo],['FRIENDS',6]].map(([l,v]) =>
+        `<div class="stat-box"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div></div>`
+      ).join('')}
+    </div>
+
+    <div class="section-header" style="position:relative">◎ YOUR RECENT LOGS</div>
+
+    ${entries.length === 0
+      ? '<div class="empty-state" style="padding:40px 30px"><div class="empty-emoji">📋</div><div class="empty-title" style="font-size:15px">No entries yet</div><div class="empty-hint">Log something!</div><button class="empty-btn" onclick="openModal()">+ LOG SOMETHING</button></div>'
+      : entries.map(item => `
+        <div class="entry-row">
+          <span class="entry-poster">${item.poster}</span>
+          <div class="entry-info">
+            <div class="entry-title">${item.title}</div>
+            <div class="entry-meta">
+              <span class="badge" style="color:${TYPE_COLORS[item.type]};border-color:${TYPE_COLORS[item.type]}44">${TYPE_LABELS[item.type]}</span>
+              ${renderStars(item.rating, 11)}
+            </div>
+          </div>
+          <span class="entry-time">${item.time||'Just now'}</span>
+        </div>
+      `).join('')
+    }
+
+    <div class="settings-section">
+      <div class="settings-lbl">SETTINGS</div>
+      <div class="settings-row" onclick="showToast('Edit profile coming soon')">
+        <span class="settings-row-text">Edit profile</span>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-row" onclick="showToast('Connect Trakt coming soon')">
+        <span class="settings-row-text">Connect Trakt account</span>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-row" onclick="showScreen('notifications')">
+        <span class="settings-row-text">Notifications</span>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-row" onclick="showScreen('stats')">
+        <span class="settings-row-text">My stats &amp; insights</span>
+        <span class="settings-arrow">›</span>
+      </div>
+      <div class="settings-row danger" onclick="logout()">
+        <span class="settings-row-text">Sign out</span>
+      </div>
+    </div>
+    <div class="pb-safe"></div>
+  `;
+}
+
+function logout() {
+  if (!confirm('Sign out of StreamingBuddies?')) return;
+  S.user = null;
+  store.set('user', null);
+  document.getElementById('auth-screen').classList.add('visible');
+  document.getElementById('auth-email').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-error').textContent = '';
+  setAuthMode('login');
+}
+
+// ── Log Modal ──────────────────────────────────────────────────
+function buildModal() {
+  // Type chips
+  document.getElementById('type-chips').innerHTML = ['movie','tv'].map(t =>
+    `<button class="chip ${t===S.modalType?'active':''}" onclick="setModalType('${t}')">${TYPE_LABELS[t]}</button>`
+  ).join('');
+
+  // Status chips — dynamic based on type + format
+  renderStatusChips();
+
+  // Stars
+  document.getElementById('star-input').innerHTML = [1,2,3,4,5].map(n =>
+    `<button class="star-btn" onclick="setModalRating(${n})" id="star-${n}" style="color:${n<=S.modalRating?'#C8A96E':'#ddd'}">★</button>`
+  ).join('');
+}
+
+function openModal(prefill = '') {
+  if (prefill) document.getElementById('modal-title-input').value = prefill;
+  document.getElementById('modal-overlay').classList.add('open');
+  checkSubmit();
+  setTimeout(() => document.getElementById('modal-title-input').focus(), 100);
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+  clearWordSummary();
+}
+
+function setModalType(t) {
+  S.modalType = t;
+  document.querySelectorAll('#type-chips .chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#type-chips .chip').forEach((c, i) => {
+    if (['movie','tv'][i] === t) c.classList.add('active');
+  });
+  S.modalStatus = 'finished';
+  renderStatusChips();
+}
+
+function setModalStatus(s) {
+  S.modalStatus = s;
+  document.querySelectorAll('#status-chips .chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#status-chips .chip').forEach((c) => {
+    if (c.dataset.value === s) c.classList.add('active');
+  });
+}
+
+function renderStatusChips() {
+  const opts = getStatusOptions(S.modalType);
+  if (!opts.find(o => o.value === S.modalStatus)) {
+    S.modalStatus = opts[0].value;
+  }
+  document.getElementById('status-chips').innerHTML = opts.map(o =>
+    `<button class="chip ${o.value===S.modalStatus?'active':''}" data-value="${o.value}" onclick="setModalStatus('${o.value}')">${o.label}</button>`
+  ).join('');
+}
+
+function setModalRating(n) {
+  S.modalRating = n;
+  [1,2,3,4,5].forEach(i => {
+    const el = document.getElementById('star-'+i);
+    if (el) el.style.color = i <= n ? '#C8A96E' : '#ddd';
+  });
+}
+
+
+
+
+
+
+
+
+
+function enforceOneWord(input) {
+  // Strip spaces so each box holds exactly one word
+  input.value = input.value.replace(/\s+/g, '');
+  updateWordCounter();
+}
+
+function updateWordCounter() {
+  const words = [1,2,3].map(n => document.getElementById('word-'+n)?.value?.trim()).filter(Boolean);
+  const counter = document.getElementById('word-counter');
+  if (counter) counter.textContent = words.length + ' / 3 words';
+}
+
+function getWordSummary() {
+  return [1,2,3]
+    .map(n => document.getElementById('word-'+n)?.value?.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function clearWordSummary() {
+  [1,2,3].forEach(n => {
+    const el = document.getElementById('word-'+n);
+    if (el) el.value = '';
+  });
+  updateWordCounter();
+}
+
+function checkSubmit() {
+  const val = document.getElementById('modal-title-input')?.value?.trim();
+  const btn = document.getElementById('modal-submit');
+  if (btn) btn.disabled = !val;
+}
+
+document.getElementById('modal-title-input').addEventListener('input', checkSubmit);
+
+function submitLog() {
+  const title = document.getElementById('modal-title-input').value.trim();
+  if (!title) return;
+  const posters = { movie:'🎬', tv:'📺' };
+  const entry = {
+    id: 'my-' + Date.now(),
+    user: S.user?.displayName || 'You',
+    avatar: S.user?.avatar || 'Y',
+    avatarColor: S.user?.avatarColor || '#E84830',
+    type: S.modalType,
+    title,
+    year: new Date().getFullYear(),
+    status: S.modalStatus,
+    rating: S.modalRating,
+    review: document.getElementById('modal-review').value.trim() || null,
+    wordSummary: getWordSummary(),
+    genre: document.getElementById('modal-genre')?.value?.trim() || 'General',
+    poster: posters[S.modalType],
+    time: 'Just now',
+    likes: 0,
+  };
+
+  S.feed = [entry, ...S.feed];
+  S.myEntries = [entry, ...S.myEntries];
+  store.set('feed', S.feed);
+  store.set('myEntries', S.myEntries);
+
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('modal-title-input').value = '';
+  document.getElementById('modal-review').value = '';
+  const genreEl = document.getElementById('modal-genre');
+  if (genreEl) genreEl.value = '';
+  clearWordSummary();
+
+  renderFeed();
+  renderProfile();
+  showToast(`"${title}" logged!`);
+  showScreen('feed');
+}
+
+// ── Toast ──────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// ── Notifications ──────────────────────────────────────────────
+const NOTIFICATIONS = [
+  { id:'n1', type:'like',    actor:'Elena M.', actorAvatar:'E', actorColor:'#E84830', target:'Dune: Part Two', time:'2m ago', read:false },
+  { id:'n2', type:'follow',  actor:'Dev K.',   actorAvatar:'D', actorColor:'#3CC68A', target:null, time:'18m ago', read:false },
+  { id:'n3', type:'like',    actor:'Yuki T.',  actorAvatar:'Y', actorColor:'#4A90D9', target:'Past Lives', time:'1h ago', read:false },
+  { id:'n4', type:'comment', actor:'Marco V.', actorAvatar:'M', actorColor:'#3CC68A', target:'Shōgun', comment:'Completely agree — episode 5 is a masterpiece.', time:'3h ago', read:true },
+  { id:'n5', type:'like',    actor:'Pia S.',   actorAvatar:'P', actorColor:'#7B6EF5', target:'Orbital', time:'Yesterday', read:true },
+  { id:'n6', type:'follow',  actor:'Rosa B.',  actorAvatar:'R', actorColor:'#C8A96E', target:null, time:'Yesterday', read:true },
+  { id:'n7', type:'comment', actor:'Elena M.', actorAvatar:'E', actorColor:'#E84830', target:'Dune: Part Two', comment:'The final act genuinely left me speechless.', time:'2 days ago', read:true },
+];
+
+const NOTIF_ICONS  = { like:'♥', follow:'◉', comment:'◻' };
+const NOTIF_COLORS = { like:'#E84830', follow:'#3CC68A', comment:'#4A90D9' };
+
+function getNotifText(n) {
+  if (n.type === 'like')    return `liked your log of <b>${n.target}</b>`;
+  if (n.type === 'follow')  return 'started following you';
+  if (n.type === 'comment') return `commented on your log of <b>${n.target}</b>`;
+  return '';
+}
+
+function renderNotifications() {
+  const unread = NOTIFICATIONS.filter(n => !n.read).length;
+  document.getElementById('notifications-content').innerHTML = `
+    <div class="notif-header">
+      <button onclick="goBack()" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;width:70px">
+        <span style="color:var(--red);font-size:18px">←</span>
+        <span style="color:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:1.5px">BACK</span>
+      </button>
+      <span class="notif-header-title">NOTIFICATIONS${unread > 0 ? ` <span class="notif-badge">${unread}</span>` : ''}</span>
+      ${unread > 0 ? `<button class="notif-mark-all" onclick="markAllNotifRead()">ALL READ</button>` : '<span style="width:70px"></span>'}
+    </div>
+    ${NOTIFICATIONS.length === 0 ? `<div class="empty-state" style="padding:60px 40px">
+      <div class="empty-emoji" style="font-size:48px">🔔</div>
+      <div class="empty-title" style="font-size:16px">All caught up</div>
+      <div class="empty-hint" style="font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--tiny);margin-top:6px;text-align:center">When friends like or comment on your logs, they'll appear here</div>
+    </div>` : ''}
+    ${NOTIFICATIONS.map(n => `
+      <div class="notif-row ${n.read ? '' : 'unread'}" id="notif-${n.id}" onclick="markNotifRead('${n.id}')">
+        <div class="notif-dot-col">${!n.read ? '<div class="notif-dot"></div>' : ''}</div>
+        <div class="notif-type-icon" style="background:${NOTIF_COLORS[n.type]}18;border-color:${NOTIF_COLORS[n.type]}44;color:${NOTIF_COLORS[n.type]}">${NOTIF_ICONS[n.type]}</div>
+        <div class="avatar" style="width:34px;height:34px;flex-shrink:0;font-size:13px;background:${n.actorColor}22;border:2px solid ${n.actorColor}66;color:${n.actorColor};display:flex;align-items:center;justify-content:center;border-radius:50%;font-family:var(--serif);font-weight:bold">${n.actorAvatar}</div>
+        <div class="notif-content">
+          <div class="notif-text"><span class="notif-actor">${n.actor}</span> <span class="notif-body">${getNotifText(n)}</span></div>
+          ${n.comment ? `<div class="notif-comment">"${n.comment}"</div>` : ''}
+          <div class="notif-time">${n.time}</div>
+        </div>
+      </div>
+    `).join('')}
+    <div class="pb-safe"></div>
+  `;
+}
+
+function markNotifRead(id) {
+  const n = NOTIFICATIONS.find(n => n.id === id);
+  if (n) n.read = true;
+  renderNotifications();
+}
+
+function markAllNotifRead() {
+  NOTIFICATIONS.forEach(n => n.read = true);
+  renderNotifications();
+}
+
+// ── Stats ───────────────────────────────────────────────────────
+function renderStats() {
+  const entries = S.myEntries.length > 0 ? S.myEntries : [
+    { type:'movie',   status:'finished', rating:5, wordSummary:['epic','stunning','overwhelming'] },
+    { type:'tv',      status:'finished', rating:4, wordSummary:['gripping','excellent','tense'] },
+    { type:'movie',   status:'finished', rating:4, wordSummary:['quiet','devastating','beautiful'] },
+  { type:'tv',      status:'finished', rating:3, wordSummary:['fine','predictable','watchable'] },
+    { type:'movie',   status:'finished', rating:5, wordSummary:['masterpiece','bold','unforgettable'] },
+  { type:'movie',   status:'watching', rating:null, wordSummary:[] },
+    { type:'tv',      status:'want to watch', rating:null, wordSummary:[] },
+  ];
+
+  const finished   = entries.filter(e => e.status === 'finished');
+  const watching   = entries.filter(e => e.status === 'watching');
+  const wantTo     = entries.filter(e => e.status === 'want to watch');
+  const byType = { movie:0, tv:0 };
+  const ratingDist = [0,0,0,0,0];
+  const wordFreq   = {};
+
+  for (const e of finished) {
+    byType[e.type] = (byType[e.type]||0) + 1;
+    if (e.rating >= 1 && e.rating <= 5) ratingDist[e.rating-1]++;
+    for (const w of (e.wordSummary||[])) { if (w) wordFreq[w] = (wordFreq[w]||0)+1; }
+  }
+
+  const rated = finished.filter(e => e.rating);
+  const avg   = rated.length ? (rated.reduce((s,e) => s+e.rating,0)/rated.length).toFixed(1) : null;
+  const maxType   = Math.max(...Object.values(byType), 1);
+  const maxRating = Math.max(...ratingDist, 1);
+  const BAR_MAX   = 160;
+
+  const topWords = Object.entries(wordFreq)
+    .sort((a,b) => b[1]-a[1]).slice(0,6);
+
+  const streak = Math.min(entries.length, 7);
+
+  const typeColors = { movie:'#E84830', tv:'#4A90D9' };
+  const typeLabels = { movie:'Films', tv:'Series' };
+
+  document.getElementById('stats-content').innerHTML = `
+    <div class="notif-header">
+      <button onclick="goBack()" style="display:flex;align-items:center;gap:5px;background:none;border:none;cursor:pointer;width:70px">
+        <span style="color:var(--red);font-size:18px">←</span>
+        <span style="color:var(--dim);font-family:var(--mono);font-size:9px;letter-spacing:1.5px">BACK</span>
+      </button>
+      <span class="notif-header-title">MY STATS</span>
+      <span style="width:70px"></span>
+    </div>
+
+    <div class="stats-section-title">OVERVIEW</div>
+    <div class="stats-card-row">
+      <div class="stats-card"><div class="stats-val">${finished.length}</div><div class="stats-lbl">LOGGED</div></div>
+      <div class="stats-card"><div class="stats-val">${watching.length}</div><div class="stats-lbl">WATCHING</div></div>
+      <div class="stats-card"><div class="stats-val">${wantTo.length}</div><div class="stats-lbl">WANT TO</div></div>
+    </div>
+
+    ${avg ? `<div class="stats-avg-row">
+      <span class="stats-avg-lbl">AVERAGE RATING</span>
+      <div class="stats-avg-right">
+        <span class="stats-avg-val">${avg}</span>
+        <span style="font-size:14px;letter-spacing:1px">${[1,2,3,4,5].map(s=>`<span style="color:${s<=Math.round(avg)?'#C8A96E':'var(--border)'}">★</span>`).join('')}</span>
+      </div>
+    </div>` : ''}
+
+    <div class="stats-section-title">BY TYPE</div>
+    <div class="stats-bars-card">
+      ${Object.entries(byType).map(([type,count]) => `
+        <div class="stats-bar-row">
+          <span class="stats-bar-label">${typeLabels[type]}</span>
+          <div class="stats-bar-track">
+            <div class="stats-bar-fill" style="width:${count>0?(count/maxType)*BAR_MAX:2}px;background:${typeColors[type]}"></div>
+          </div>
+          <span class="stats-bar-count" style="color:${typeColors[type]}">${count}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="stats-section-title">RATING BREAKDOWN</div>
+    <div class="stats-bars-card">
+      ${[5,4,3,2,1].map(star => `
+        <div class="stats-bar-row">
+          <span class="stats-bar-label" style="color:var(--gold)">${'★'.repeat(star)}</span>
+          <div class="stats-bar-track">
+            <div class="stats-bar-fill" style="width:${ratingDist[star-1]>0?(ratingDist[star-1]/maxRating)*BAR_MAX:2}px;background:#f59e0b;opacity:${0.4+(star/5)*0.6}"></div>
+          </div>
+          <span class="stats-bar-count" style="color:var(--gold)">${ratingDist[star-1]}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    ${topWords.length ? `
+    <div class="stats-section-title">YOUR TOP WORDS</div>
+    <div class="stats-words-grid">
+      ${topWords.map(([word,count]) => `
+        <div class="stats-word-chip">
+          <span class="stats-word">${word}</span>
+          <span class="stats-word-count">${count}×</span>
+        </div>
+      `).join('')}
+    </div>` : ''}
+
+    <div class="stats-section-title">LOGGING STREAK</div>
+    <div class="streak-card">
+      <div class="streak-num">${streak}</div>
+      <div class="streak-lbl">day streak</div>
+      <div class="streak-dots">
+        ${[...Array(7)].map((_,i) => `<div class="streak-dot ${i<streak?'active':''}"></div>`).join('')}
+      </div>
+    </div>
+    <div class="pb-safe"></div>
+  `;
+}
+
+
+// ── Boot ───────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>

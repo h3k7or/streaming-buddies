@@ -1,0 +1,8 @@
+export const PEOPLE_DATA = [
+  { id: 'u2', username: 'elenam', displayName: 'Elena M.', avatar: 'E', avatarColor: '#E84830', bio: 'Sci-fi obsessed.', followers: 142, following: 89, entriesCount: 47, lastEntry: { title: 'Dune: Part Two', type: 'movie', rating: 5, poster: '🏜️' }, isFollowing: true },
+  { id: 'u3', username: 'marcov', displayName: 'Marco V.', avatar: 'M', avatarColor: '#3CC68A', bio: 'Drama & documentaries.', followers: 98, following: 61, entriesCount: 32, lastEntry: { title: 'Shōgun', type: 'tv', rating: 4, poster: '⛩️' }, isFollowing: true },
+  { id: 'u4', username: 'pias', displayName: 'Pia S.', avatar: 'P', avatarColor: '#7B6EF5', bio: 'Slow cinema & literary fiction.', followers: 210, following: 88, entriesCount: 91, lastEntry: { title: 'Dune: Part Two', type: 'movie', rating: 5, poster: '🏜️' }, isFollowing: false },
+  { id: 'u5', username: 'yukitt', displayName: 'Yuki T.', avatar: 'Y', avatarColor: '#4A90D9', bio: 'A24 fan forever.', followers: 73, following: 55, entriesCount: 28, lastEntry: { title: 'Past Lives', type: 'movie', rating: 5, poster: '🌸' }, isFollowing: true },
+  { id: 'u6', username: 'rosab', displayName: 'Rosa B.', avatar: 'R', avatarColor: '#C8A96E', bio: 'Documentary & world cinema.', followers: 156, following: 203, entriesCount: 19, lastEntry: { title: 'The Bear', type: 'tv', rating: null, poster: '🍳' }, isFollowing: true },
+  { id: 'u7', username: 'devk', displayName: 'Dev K.', avatar: 'D', avatarColor: '#E84830', bio: 'Auteur cinema & essays.', followers: 188, following: 77, entriesCount: 63, lastEntry: { title: 'Shōgun', type: 'tv', rating: 5, poster: '⛩️' }, isFollowing: false },
+];

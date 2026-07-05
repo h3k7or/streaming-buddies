@@ -1,0 +1,6 @@
+export const FEED_DATA = [
+  { id: '1', user: 'Elena M.', avatar: 'E', avatarColor: '#E84830', type: 'movie', title: 'Dune: Part Two', year: 2024, status: 'finished', rating: 5, review: 'Absolutely breathtaking. Villeneuve has done it again. The sandworm scenes alone are worth the price of admission.', genre: 'Sci-Fi', poster: '🏜️', time: '2h ago', likes: 14, wordSummary: ['epic', 'stunning', 'overwhelming'] },
+  { id: '2', user: 'Marco V.', avatar: 'M', avatarColor: '#3CC68A', type: 'tv', title: 'Shōgun', year: 2024, status: 'watching', rating: 4, review: 'Stunning cinematography and deeply layered characters. Every episode feels like a film.', genre: 'Drama', poster: '⛩️', time: '5h ago', likes: 9 },
+  { id: '5', user: 'Yuki T.', avatar: 'Y', avatarColor: '#4A90D9', type: 'movie', title: 'Past Lives', year: 2023, status: 'finished', rating: 5, review: 'I cried twice. This movie lives inside you long after it ends.', genre: 'Romance', poster: '🌸', time: '2 days ago', likes: 31, wordSummary: ['quiet', 'devastating', 'beautiful'] },
+  { id: '6', user: 'Rosa B.', avatar: 'R', avatarColor: '#C8A96E', type: 'tv', title: 'The Bear', year: 2024, status: 'want to watch', rating: null, review: 'Everyone keeps telling me to watch this. Finally adding it to my list.', genre: 'Drama', poster: '🍳', time: '3 days ago', likes: 4 },
+];
