@@ -11,7 +11,7 @@ import StatsScreen from '../../screens/StatsScreen.jsx';
 
 const MAIN_SCREENS = ['feed', 'search', 'people', 'trending', 'profile'];
 
-export default function AppShell({ state, dispatch }) {
+export default function AppShell({ state, dispatch, actions }) {
   const { currentScreen } = state;
 
   function navigate(screen) {
@@ -41,13 +41,13 @@ export default function AppShell({ state, dispatch }) {
     <div id="app">
       <Header onLogClick={() => openModal()} />
       <div id="screens">
-        <FeedScreen    active={currentScreen === 'feed'}    state={state} dispatch={dispatch} onDetail={id => navigate(`detail:${id}`)} onOpenModal={openModal} onToast={showToast} onNavigate={navigate} />
+        <FeedScreen    active={currentScreen === 'feed'}    state={state} dispatch={dispatch} actions={actions} onDetail={id => navigate(`detail:${id}`)} onOpenModal={openModal} onToast={showToast} onNavigate={navigate} />
         <SearchScreen  active={currentScreen === 'search'}  state={state} dispatch={dispatch} onOpenModal={openModal} onToast={showToast} onNavigate={navigate} />
-        <PeopleScreen  active={currentScreen === 'people'}  state={state} dispatch={dispatch} onToast={showToast} />
+        <PeopleScreen  active={currentScreen === 'people'}  state={state} dispatch={dispatch} actions={actions} onToast={showToast} />
         <TrendingScreen active={currentScreen === 'trending'} state={state} dispatch={dispatch} onDetail={id => navigate(`detail:${id}`)} />
-        <ProfileScreen active={currentScreen === 'profile'} state={state} dispatch={dispatch} onOpenModal={openModal} onToast={showToast} onNavigate={navigate} />
-        <DetailScreen  active={currentScreen.startsWith('detail:')} state={state} dispatch={dispatch} itemId={currentScreen.startsWith('detail:') ? currentScreen.slice(7) : null} onBack={goBack} onToast={showToast} />
-        <NotificationsScreen active={currentScreen === 'notifications'} state={state} dispatch={dispatch} onBack={goBack} />
+        <ProfileScreen active={currentScreen === 'profile'} state={state} dispatch={dispatch} actions={actions} onOpenModal={openModal} onToast={showToast} onNavigate={navigate} />
+        <DetailScreen  active={currentScreen.startsWith('detail:')} state={state} dispatch={dispatch} actions={actions} itemId={currentScreen.startsWith('detail:') ? currentScreen.slice(7) : null} onBack={goBack} onToast={showToast} />
+        <NotificationsScreen active={currentScreen === 'notifications'} state={state} dispatch={dispatch} actions={actions} onBack={goBack} />
         <StatsScreen   active={currentScreen === 'stats'}   state={state} dispatch={dispatch} onBack={goBack} />
       </div>
       <BottomNav current={activeNav} onNavigate={navigate} />

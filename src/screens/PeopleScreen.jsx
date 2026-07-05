@@ -1,14 +1,14 @@
 import PersonCard from '../components/cards/PersonCard.jsx';
 import EmptyState from '../components/ui/EmptyState.jsx';
 
-export default function PeopleScreen({ active, state, dispatch, onToast }) {
+export default function PeopleScreen({ active, state, dispatch, actions, onToast }) {
   const { people, peopleTab } = state;
   const shown = peopleTab === 'friends' ? people.filter(p => p.isFollowing) : people.filter(p => !p.isFollowing);
 
   function handleFollow(id) {
     const p = people.find(p => p.id === id);
-    dispatch({ type: 'TOGGLE_FOLLOW', id });
     if (p) dispatch({ type: 'SHOW_TOAST', msg: p.isFollowing ? `Unfollowed ${p.displayName}` : `Following ${p.displayName}` });
+    actions.toggleFollow(id);
   }
 
   return (

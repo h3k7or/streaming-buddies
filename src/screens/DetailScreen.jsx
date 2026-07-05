@@ -5,13 +5,13 @@ import Badge from '../components/ui/Badge.jsx';
 import Poster from '../components/ui/Poster.jsx';
 import { TYPE_LABELS, TYPE_COLORS, STATUS_COLORS, getStatusLabel, getStatusIcon } from '../utils/content.js';
 
-export default function DetailScreen({ active, state, dispatch, itemId, onBack, onToast }) {
+export default function DetailScreen({ active, state, dispatch, actions, itemId, onBack, onToast }) {
   const { feed, trending, liked } = state;
   const item = itemId ? (feed.find(i => i.id === itemId) || trending.find(i => i.id === itemId)) : null;
 
   function handleLike() {
     if (!item) return;
-    dispatch({ type: 'TOGGLE_LIKE', id: item.id });
+    actions.toggleLike(item.id);
   }
 
   function handleShare() {

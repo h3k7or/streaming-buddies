@@ -5,7 +5,7 @@ import EmptyState from '../components/ui/EmptyState.jsx';
 
 const FILTERS = [['all', 'All'], ['movie', 'Films'], ['tv', 'Series']];
 
-export default function FeedScreen({ active, state, dispatch, onDetail, onOpenModal, onToast }) {
+export default function FeedScreen({ active, state, dispatch, actions, onDetail, onOpenModal, onToast }) {
   const [loading, setLoading] = useState(false);
   const { feed, feedFilter, liked } = state;
 
@@ -49,7 +49,7 @@ export default function FeedScreen({ active, state, dispatch, onDetail, onOpenMo
               key={item.id}
               item={item}
               liked={liked.has(item.id)}
-              onLike={id => dispatch({ type: 'TOGGLE_LIKE', id })}
+              onLike={id => actions.toggleLike(id)}
               onDetail={onDetail}
               onToast={onToast}
             />

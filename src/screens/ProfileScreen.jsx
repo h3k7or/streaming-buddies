@@ -2,7 +2,7 @@ import Stars from '../components/ui/Stars.jsx';
 import Badge from '../components/ui/Badge.jsx';
 import { TYPE_LABELS, TYPE_COLORS } from '../utils/content.js';
 
-export default function ProfileScreen({ active, state, dispatch, onOpenModal, onToast, onNavigate }) {
+export default function ProfileScreen({ active, state, dispatch, actions, onOpenModal, onToast, onNavigate }) {
   const { user, myEntries } = state;
   const u = user || {};
   const watched  = myEntries.filter(e => e.status === 'finished').length;
@@ -12,7 +12,7 @@ export default function ProfileScreen({ active, state, dispatch, onOpenModal, on
 
   function handleLogout() {
     if (!window.confirm('Sign out of StreamingBuddies?')) return;
-    dispatch({ type: 'LOGOUT' });
+    actions.logout();
   }
 
   return (

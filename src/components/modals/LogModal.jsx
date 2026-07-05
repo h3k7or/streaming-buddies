@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { TYPE_LABELS, STATUS_OPTIONS } from '../../utils/content.js';
 
-export default function LogModal({ open, prefill, modalType, modalStatus, modalRating, modalPosterPath, modalYear, user, dispatch }) {
+export default function LogModal({ open, prefill, modalType, modalStatus, modalRating, modalPosterPath, modalYear, user, dispatch, actions }) {
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [review, setReview] = useState('');
@@ -32,14 +32,9 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
     setWords(['', '', '']);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!title.trim()) return;
-    const posters = { movie: '🎬', tv: '📺' };
     const entry = {
-      id: 'my-' + Date.now(),
-      user: user?.displayName || 'You',
-      avatar: user?.avatar || 'Y',
-      avatarColor: user?.avatarColor || '#E84830',
       type: modalType,
       title: title.trim(),
       year: modalYear || new Date().getFullYear(),
@@ -48,15 +43,16 @@ export default function LogModal({ open, prefill, modalType, modalStatus, modalR
       review: review.trim() || null,
       wordSummary: words.map(w => w.trim().toLowerCase()).filter(Boolean),
       genre: genre.trim() || 'General',
-      poster: posters[modalType] || '🎬',
       posterPath: modalPosterPath || null,
-      time: 'Just now',
-      likes: 0,
     };
-    dispatch({ type: 'SUBMIT_LOG', entry });
-    dispatch({ type: 'SHOW_TOAST', msg: `"${entry.title}" logged!` });
-    dispatch({ type: 'SHOW_SCREEN', screen: 'feed' });
-    resetForm();
+    try {
+      await actions.submitLog(entry);
+      dispatch({ type: 'SHOW_TOAST', msg: `"${entry.title}" logged!` });
+      dispatch({ type: 'SHOW_SCREEN', screen: 'feed' });
+      resetForm();
+    } catch (err) {
+      dispatch({ type: 'SHOW_TOAST', msg: 'Failed to save — try again' });
+    }
   }
 
   const wordCount = words.filter(w => w.trim()).length;
