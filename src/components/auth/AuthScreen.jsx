@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '../../utils/supabase.js';
 
 function FilmHoles() {
   return (
@@ -8,7 +9,7 @@ function FilmHoles() {
   );
 }
 
-export default function AuthScreen({ visible, actions }) {
+export default function AuthScreen({ visible }) {
   const [mode, setMode] = useState('login');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -29,9 +30,15 @@ export default function AuthScreen({ visible, actions }) {
     setLoading(true);
     try {
       if (mode === 'login') {
-        await actions.login(email, password);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
       } else {
-        await actions.signup(email, password, username);
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { username } },
+        });
+        if (error) throw error;
         setError('Check your email to confirm your account, then sign in.');
         setMode('login');
       }
