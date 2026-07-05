@@ -6,24 +6,18 @@ import LogModal from './components/modals/LogModal.jsx';
 import Toast from './components/ui/Toast.jsx';
 
 export default function App() {
-  const [state, dispatch] = useAppState();
+  const [state, dispatch, actions] = useAppState();
 
   const showOnboarding = !state.onboardingDone;
-  const showAuth = state.onboardingDone && !state.user;
+  const showAuth = state.onboardingDone && !state.user && !state.loading;
 
   return (
     <>
-      <Onboarding
-        visible={showOnboarding}
-        dispatch={dispatch}
-      />
-      <AuthScreen
-        visible={showAuth}
-        dispatch={dispatch}
-      />
+      <Onboarding visible={showOnboarding} dispatch={dispatch} />
+      <AuthScreen visible={showAuth} actions={actions} />
       {state.user && (
         <>
-          <AppShell state={state} dispatch={dispatch} />
+          <AppShell state={state} dispatch={dispatch} actions={actions} />
           <LogModal
             open={state.modalOpen}
             prefill={state.modalPrefill}
@@ -34,6 +28,7 @@ export default function App() {
             modalYear={state.modalYear}
             user={state.user}
             dispatch={dispatch}
+            actions={actions}
           />
         </>
       )}
