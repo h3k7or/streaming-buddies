@@ -147,15 +147,32 @@ function reducer(state, action) {
 }
 
 async function ensureProfile(u) {
+  try {
+    const meta = u.user_metadata || {};
+    const uname = meta.username || u.email.split('@')[0];
+    await supabase.from('profiles').upsert({
+      id: u.id,
+      username: uname,
+      display_name: uname,
+      avatar_letter: uname[0].toUpperCase(),
+      avatar_color: '#E84830',
+    }, { onConflict: 'id', ignoreDuplicates: true });
+  } catch (e) {
+    console.error('ensureProfile', e);
+  }
+}
+
+function userFromSession(u) {
   const meta = u.user_metadata || {};
   const uname = meta.username || u.email.split('@')[0];
-  await supabase.from('profiles').upsert({
+  return {
     id: u.id,
+    email: u.email,
     username: uname,
-    display_name: uname,
-    avatar_letter: uname[0].toUpperCase(),
-    avatar_color: '#E84830',
-  }, { onConflict: 'id', ignoreDuplicates: true });
+    displayName: uname,
+    avatar: uname[0].toUpperCase(),
+    avatarColor: '#E84830',
+  };
 }
 
 async function loadUserData(userId, dispatch) {
@@ -189,46 +206,32 @@ export function useAppState() {
   // Auth listener
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const u = session.user;
-        const meta = u.user_metadata || {};
-        await ensureProfile(u);
-        dispatch({
-          type: 'SET_USER',
-          user: {
-            id: u.id,
-            email: u.email,
-            username: meta.username || u.email.split('@')[0],
-            displayName: meta.username || u.email.split('@')[0],
-            avatar: (meta.username || u.email)[0].toUpperCase(),
-            avatarColor: '#E84830',
-          },
-        });
-        loadUserData(u.id, dispatch);
-      } else {
+      try {
+        if (session?.user) {
+          await ensureProfile(session.user);
+          dispatch({ type: 'SET_USER', user: userFromSession(session.user) });
+          loadUserData(session.user.id, dispatch);
+        } else {
+          dispatch({ type: 'SET_LOADING', loading: false });
+        }
+      } catch (e) {
+        console.error('getSession handler', e);
         dispatch({ type: 'SET_LOADING', loading: false });
       }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const u = session.user;
-        const meta = u.user_metadata || {};
-        await ensureProfile(u);
-        dispatch({
-          type: 'SET_USER',
-          user: {
-            id: u.id,
-            email: u.email,
-            username: meta.username || u.email.split('@')[0],
-            displayName: meta.username || u.email.split('@')[0],
-            avatar: (meta.username || u.email)[0].toUpperCase(),
-            avatarColor: '#E84830',
-          },
-        });
-        loadUserData(u.id, dispatch);
-      } else if (event === 'SIGNED_OUT') {
-        dispatch({ type: 'LOGOUT' });
+      try {
+        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
+          await ensureProfile(session.user);
+          dispatch({ type: 'SET_USER', user: userFromSession(session.user) });
+          loadUserData(session.user.id, dispatch);
+        } else if (event === 'SIGNED_OUT') {
+          dispatch({ type: 'LOGOUT' });
+        }
+      } catch (e) {
+        console.error('onAuthStateChange', e);
+        dispatch({ type: 'SET_LOADING', loading: false });
       }
     });
 
